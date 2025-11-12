@@ -1,0 +1,15 @@
+import { create } from 'zustand'
+
+let idSeq = 0
+
+export const useToastStore = create((set) => ({
+  toasts: [],
+  push: (toast) => set((state) => ({ toasts: [...state.toasts, { id: ++idSeq, ...toast }] })),
+  remove: (id) => set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) })),
+}))
+
+export const toast = {
+  success: (title, description) => useToastStore.getState().push({ type: 'success', title, description }),
+  error: (title, description) => useToastStore.getState().push({ type: 'error', title, description }),
+  info: (title, description) => useToastStore.getState().push({ type: 'info', title, description }),
+}
