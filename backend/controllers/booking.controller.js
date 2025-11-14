@@ -303,13 +303,20 @@ exports.createBooking = async (req, res, next) => {
       });
 
     // Send booking confirmation notification (async via queue)
-    await sendBookingConfirmation(populatedBooking, req.user, { sms: true });
+    // Don't await - let it run in background to avoid blocking response
+    sendBookingConfirmation(populatedBooking, req.user, { sms: true }).catch(err => {
+      console.error('Error sending booking confirmation:', err);
+    });
 
     // Broadcast WebSocket event
-    broadcast({
-      type: booking.paymentStatus === 'paid' ? 'BOOKING_PAID' : 'NEW_BOOKING',
-      data: populatedBooking,
-    });
+    try {
+      broadcast({
+        type: booking.paymentStatus === 'paid' ? 'BOOKING_PAID' : 'NEW_BOOKING',
+        data: populatedBooking,
+      });
+    } catch (err) {
+      console.error('Error broadcasting WebSocket event:', err);
+    }
 
     res.status(201).json({
       status: 'success',
