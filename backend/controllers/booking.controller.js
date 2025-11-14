@@ -282,13 +282,15 @@ exports.createBooking = async (req, res, next) => {
     showtimeDoc.availableSeats -= seats.length;
     await showtimeDoc.save();
 
-    // Release Redis locks when payment is completed
+    // Release Redis locks when payment is completed (don't block on this)
     if (booking.paymentStatus === 'paid') {
-      await releaseSeats(
+      releaseSeats(
         booking.showtime.toString(),
         booking.seats,
         booking.user.toString()
-      );
+      ).catch(err => {
+        console.error('Error releasing seats:', err);
+      });
     }
 
     // Populate booking details
@@ -302,13 +304,21 @@ exports.createBooking = async (req, res, next) => {
         },
       });
 
-    // Send booking confirmation notification (async via queue)
-    // Don't await - let it run in background to avoid blocking response
+    // Send response immediately
+    res.status(201).json({
+      status: 'success',
+      data: {
+        booking: populatedBooking,
+        lockExpiresIn: lockResult.expiresIn,
+      },
+    });
+
+    // Send booking confirmation notification (async, after response)
     sendBookingConfirmation(populatedBooking, req.user, { sms: true }).catch(err => {
       console.error('Error sending booking confirmation:', err);
     });
 
-    // Broadcast WebSocket event
+    // Broadcast WebSocket event (after response)
     try {
       broadcast({
         type: booking.paymentStatus === 'paid' ? 'BOOKING_PAID' : 'NEW_BOOKING',
@@ -317,14 +327,6 @@ exports.createBooking = async (req, res, next) => {
     } catch (err) {
       console.error('Error broadcasting WebSocket event:', err);
     }
-
-    res.status(201).json({
-      status: 'success',
-      data: {
-        booking: populatedBooking,
-        lockExpiresIn: lockResult.expiresIn,
-      },
-    });
   } catch (error) {
     next(error);
   }
