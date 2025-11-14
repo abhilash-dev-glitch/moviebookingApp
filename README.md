@@ -5,7 +5,8 @@
 ![CineGo Banner](https://img.shields.io/badge/CineGo-Movie%20Booking-red?style=for-the-badge&logo=film)
 
 **A full-stack movie ticket booking platform with real-time seat selection, payment processing, and multi-role management**
--**click on Render logo for Live application**
+</br>
+**click on Render logo for Live application**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-success?style=for-the-badge&logo=render)](https://cinego-app.onrender.com)
 [![Backend API](https://img.shields.io/badge/API-Docs-blue?style=for-the-badge&logo=swagger)](https://cinego-3q2f.onrender.com)
