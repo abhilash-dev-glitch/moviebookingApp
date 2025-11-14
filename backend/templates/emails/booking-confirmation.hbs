@@ -25,6 +25,42 @@
             padding: 30px;
             border-radius: 0 0 10px 10px;
         }
+        .movie-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+        }
+        .movie-poster {
+            flex-shrink: 0;
+        }
+        .movie-poster img {
+            width: 120px;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .movie-info {
+            flex: 1;
+        }
+        .movie-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .movie-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .movie-meta span {
+            margin-right: 15px;
+        }
         .ticket-details {
             background: white;
             padding: 20px;
@@ -47,6 +83,20 @@
         }
         .value {
             color: #333;
+        }
+        .qr-section {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .booking-id-large {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 2px;
+            margin: 10px 0;
         }
         .footer {
             text-align: center;
@@ -75,41 +125,63 @@
         <p>Hi {{userName}},</p>
         <p>Great news! Your booking has been confirmed. Get ready for an amazing movie experience!</p>
         
+        {{#if moviePoster}}
+        <!-- Movie Card with Poster -->
+        <div class="movie-card">
+            <div class="movie-poster">
+                <img src="{{moviePoster}}" alt="{{movieTitle}}" />
+            </div>
+            <div class="movie-info">
+                <h2 class="movie-title">{{movieTitle}}</h2>
+                <div class="movie-meta">
+                    {{#if movieGenre}}<span>🎭 {{movieGenre}}</span>{{/if}}
+                    {{#if movieDuration}}<span>⏱️ {{movieDuration}} mins</span>{{/if}}
+                    {{#if movieLanguage}}<span>🗣️ {{movieLanguage}}</span>{{/if}}
+                </div>
+                {{#if movieDescription}}
+                <p style="color: #666; font-size: 14px; line-height: 1.5;">{{movieDescription}}</p>
+                {{/if}}
+            </div>
+        </div>
+        {{/if}}
+        
+        <!-- Booking ID Display -->
+        <div class="qr-section">
+            <p style="margin: 0; color: #666; font-size: 14px;">Your Booking ID</p>
+            <div class="booking-id-large">{{bookingId}}</div>
+            <p style="margin: 0; color: #999; font-size: 12px;">Show this at the theater entrance</p>
+        </div>
+        
         <div class="ticket-details">
             <h3>Booking Details</h3>
             
             <div class="detail-row">
-                <span class="label">Booking ID:</span>
-                <span class="value">{{bookingId}}</span>
-            </div>
-            
-            <div class="detail-row">
-                <span class="label">Movie:</span>
+                <span class="label">🎬 Movie:</span>
                 <span class="value">{{movieTitle}}</span>
             </div>
             
             <div class="detail-row">
-                <span class="label">Theater:</span>
+                <span class="label">🏢 Theater:</span>
                 <span class="value">{{theaterName}}</span>
             </div>
             
             <div class="detail-row">
-                <span class="label">Show Time:</span>
+                <span class="label">📅 Show Time:</span>
                 <span class="value">{{showtime}}</span>
             </div>
             
             <div class="detail-row">
-                <span class="label">Seats:</span>
+                <span class="label">💺 Seats:</span>
                 <span class="value">{{seats}}</span>
             </div>
             
             <div class="detail-row">
-                <span class="label">Total Amount:</span>
+                <span class="label">💰 Total Amount:</span>
                 <span class="value">₹{{totalAmount}}</span>
             </div>
             
             <div class="detail-row">
-                <span class="label">Booking Date:</span>
+                <span class="label">📆 Booking Date:</span>
                 <span class="value">{{bookingDate}}</span>
             </div>
         </div>
@@ -120,12 +192,12 @@
             <a href="#" class="button">Complete Payment</a>
         </center>
         
-        <p style="margin-top: 30px;">Thank you for choosing our service!</p>
+        <p style="margin-top: 30px;">Thank you for choosing CineGo!</p>
     </div>
     
     <div class="footer">
         <p>This is an automated email. Please do not reply.</p>
-        <p>&copy; 2024 Movie Booking System. All rights reserved.</p>
+        <p>&copy; 2024 CineGo - Movie Booking Made Easy. All rights reserved.</p>
     </div>
 </body>
 </html>

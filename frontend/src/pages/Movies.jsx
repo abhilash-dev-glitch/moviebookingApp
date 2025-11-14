@@ -5,13 +5,19 @@ import MovieCard from '../components/MovieCard';
 import { toast } from '../lib/toast';
 
 export default function Movies() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Get filter from URL or default to 'now-showing'
+  // Get filter, search query, and page from URL
   const filter = searchParams.get('filter') || 'now-showing';
+  const searchQuery = searchParams.get('search') || '';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  
+  // Pagination settings
+  const moviesPerPage = 10;
+  const [totalMovies, setTotalMovies] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -43,17 +49,37 @@ export default function Movies() {
         }
         
         // Filter out any invalid movie objects
-        const validMovies = moviesData.filter(movie => 
+        let validMovies = moviesData.filter(movie => 
           movie && 
           (movie.title || movie.name) && 
           (movie.poster || movie.image)
         );
+
+        // Apply search filter if search query exists
+        if (searchQuery) {
+          validMovies = validMovies.filter(movie => {
+            const title = (movie.title || movie.name || '').toLowerCase();
+            const description = (movie.description || '').toLowerCase();
+            const genres = Array.isArray(movie.genre) ? movie.genre.join(' ').toLowerCase() : '';
+            const query = searchQuery.toLowerCase();
+            
+            return title.includes(query) || description.includes(query) || genres.includes(query);
+          });
+        }
         
         if (validMovies.length === 0 && moviesData.length > 0) {
           console.warn('No valid movies found in response:', moviesData);
         }
         
-        setMovies(validMovies);
+        // Set total movies for pagination
+        setTotalMovies(validMovies.length);
+        
+        // Apply pagination
+        const startIndex = (currentPage - 1) * moviesPerPage;
+        const endIndex = startIndex + moviesPerPage;
+        const paginatedMovies = validMovies.slice(startIndex, endIndex);
+        
+        setMovies(paginatedMovies);
       })
       .catch(err => {
         console.error('Error fetching movies:', err);
@@ -64,7 +90,7 @@ export default function Movies() {
       .finally(() => {
         setLoading(false);
       });
-  }, [filter]);
+  }, [filter, searchQuery, currentPage]);
 
   // Filter buttons configuration
   const filters = [
@@ -79,8 +105,11 @@ export default function Movies() {
       <div className="bg-gradient-to-r from-gray-900 to-gray-800 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {filter === 'now-showing' ? 'Now Showing' : 
-             filter === 'coming-soon' ? 'Coming Soon' : 'Top Rated Movies'}
+            {searchQuery 
+              ? `Search Results for "${searchQuery}"` 
+              : filter === 'now-showing' ? 'Now Showing' 
+              : filter === 'coming-soon' ? 'Coming Soon' 
+              : 'Top Rated Movies'}
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             {filter === 'now-showing' 
@@ -142,15 +171,95 @@ export default function Movies() {
         {!loading && !error && (
           <>
             {movies.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {movies.map((movie) => (
-                  <MovieCard key={movie._id || movie.id} movie={movie} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  {movies.map((movie) => (
+                    <MovieCard key={movie._id || movie.id} movie={movie} />
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                {totalMovies > moviesPerPage && (
+                  <div className="mt-12 flex justify-center items-center gap-2">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set('page', Math.max(1, currentPage - 1).toString());
+                        setSearchParams(newParams);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    
+                    {/* Page Numbers */}
+                    {(() => {
+                      const totalPages = Math.ceil(totalMovies / moviesPerPage);
+                      const pages = [];
+                      
+                      // Show max 5 page numbers
+                      let startPage = Math.max(1, currentPage - 2);
+                      let endPage = Math.min(totalPages, startPage + 4);
+                      
+                      if (endPage - startPage < 4) {
+                        startPage = Math.max(1, endPage - 4);
+                      }
+                      
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => {
+                              const newParams = new URLSearchParams(searchParams);
+                              newParams.set('page', i.toString());
+                              setSearchParams(newParams);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`px-4 py-2 rounded-lg transition-colors ${
+                              currentPage === i
+                                ? 'bg-brand text-white'
+                                : 'bg-gray-800 text-white hover:bg-gray-700'
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                      
+                      return pages;
+                    })()}
+                    
+                    {/* Next Button */}
+                    <button
+                      onClick={() => {
+                        const totalPages = Math.ceil(totalMovies / moviesPerPage);
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set('page', Math.min(totalPages, currentPage + 1).toString());
+                        setSearchParams(newParams);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      disabled={currentPage >= Math.ceil(totalMovies / moviesPerPage)}
+                      className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                    
+                    {/* Page Info */}
+                    <span className="ml-4 text-sm text-gray-400">
+                      Page {currentPage} of {Math.ceil(totalMovies / moviesPerPage)} ({totalMovies} movies)
+                    </span>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-400">
-                  {filter === 'now-showing' 
+                  {searchQuery 
+                    ? `No movies found matching "${searchQuery}". Try different keywords.`
+                    : filter === 'now-showing' 
                     ? 'No movies currently showing. Please check back soon!'
                     : filter === 'coming-soon'
                       ? 'No upcoming movies announced yet.'

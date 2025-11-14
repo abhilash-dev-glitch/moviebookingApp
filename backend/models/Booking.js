@@ -14,7 +14,7 @@ const bookingSchema = new mongoose.Schema(
     },
     seats: [
       {
-        row: Number,
+        row: String,
         seat: Number,
         price: Number,
       },
@@ -31,21 +31,22 @@ const bookingSchema = new mongoose.Schema(
     paymentId: String,
     paymentMethod: {
       type: String,
-      enum: ['credit_card', 'debit_card', 'net_banking', 'upi', 'wallet'],
+      enum: ['card', 'credit_card', 'debit_card', 'net_banking', 'upi', 'wallet'],
       required: [true, 'Please provide payment method'],
     },
     bookingDate: {
       type: Date,
       default: Date.now,
     },
+    cancelledAt: {
+      type: Date,
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-// Index for better query performance
 bookingSchema.index({ user: 1, showtime: 1 });
 
-// Virtual populate for user and showtime details
 bookingSchema.virtual('userDetails', {
   ref: 'User',
   localField: 'user',
@@ -65,13 +66,5 @@ bookingSchema.virtual('showtimeDetails', {
   },
 });
 
-// Pre-save hook to calculate total amount
-bookingSchema.pre('save', function (next) {
-  if (this.isModified('seats') && this.seats.length > 0) {
-    this.totalAmount = this.seats.reduce((sum, seat) => sum + seat.price, 0);
-  }
-  next();
-});
-
-const Booking = mongoose.model('Booking', bookingSchema);
+const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 module.exports = Booking;

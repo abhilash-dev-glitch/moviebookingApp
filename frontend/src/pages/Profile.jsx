@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { UsersAPI, BookingAPI } from '../lib/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from '../lib/toast';
@@ -7,6 +7,8 @@ import { checkAuth, logout } from '../store/authSlice';
 
 export default function Profile() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useSelector((state) => ({
     user: state.auth.user
   }));
@@ -20,6 +22,9 @@ export default function Profile() {
     }
   };
 
+  // Get initial tab from URL query parameter
+  const initialTab = searchParams.get('tab') || 'profile';
+
   const [preview, setPreview] = useState(null);
   // ... (rest of the file is the same)
   const [uploading, setUploading] = useState(false);
@@ -28,7 +33,7 @@ export default function Profile() {
   const [email, setEmail] = useState(user?.email || '');
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -107,6 +112,20 @@ export default function Profile() {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await BookingAPI.cancelBooking(bookingId);
+      toast.success('Booking cancelled', 'Your booking has been cancelled and refund will be processed');
+      // Reload bookings to show updated status
+      await loadBookings();
+    } catch (err) {
+      toast.error('Cancellation failed', err?.response?.data?.message || 'Please try again');
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -117,11 +136,16 @@ export default function Profile() {
             My Account
           </h1>
           <p className="text-sm text-white/60 mt-1">
-            Manage your profile and view booking history
+            {user?.role === 'admin' || user?.role === 'theaterManager' 
+              ? 'Manage your profile settings'
+              : 'Manage your profile and view booking history'}
           </p>
         </div>
         <button
-          onClick={() => dispatch(logout())}
+          onClick={async () => {
+            await dispatch(logout());
+            navigate('/signin', { replace: true });
+          }}
           className="mt-4 sm:mt-0 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-medium shadow-lg hover:shadow-red-500/20 transition-all duration-200 flex items-center"
         >
           <svg
@@ -170,31 +194,34 @@ export default function Profile() {
             </svg>
             Profile
           </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-              activeTab === 'bookings'
-                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/30'
-                : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-            }`}
-          >
-            <svg
-              className={`mr-2 h-5 w-5 transition-colors duration-300 ${
-                activeTab === 'bookings' ? 'text-white' : 'text-gray-400 group-hover:text-white'
+          {/* Hide My Bookings tab for admin and theater manager */}
+          {user?.role !== 'admin' && user?.role !== 'theaterManager' && (
+            <button
+              onClick={() => setActiveTab('bookings')}
+              className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                activeTab === 'bookings'
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
               }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={activeTab === 'bookings' ? 2 : 1.5}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            My Bookings
-          </button>
+              <svg
+                className={`mr-2 h-5 w-5 transition-colors duration-300 ${
+                  activeTab === 'bookings' ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={activeTab === 'bookings' ? 2 : 1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              My Bookings
+            </button>
+          )}
         </nav>
       </div>
 
@@ -518,119 +545,350 @@ export default function Profile() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {bookings.map((booking) => (
-                  <div
-                    key={booking._id}
-                    className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-5 transition-all duration-200 hover:shadow-lg hover:shadow-brand/10"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <h3 className="text-lg font-semibold text-white group-hover:text-brand transition-colors duration-200">
-                            {booking.movie?.title || 'Movie'}
-                          </h3>
-                          <span
-                            className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              booking.status === 'confirmed'
-                                ? 'bg-green-900/30 text-green-400 border border-green-800/50'
-                                : booking.status === 'cancelled'
-                                ? 'bg-red-900/30 text-red-400 border border-red-800/50'
-                                : 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50'
-                            }`}
-                          >
-                            {booking.status?.charAt(0).toUpperCase() +
-                              booking.status?.slice(1)}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center text-sm text-white/70 gap-y-1">
-                          <div className="flex items-center mr-4">
-                            <svg
-                              className="h-4 w-4 mr-1.5 text-white/50"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                              />
-                            </svg>
-                            {booking.theater?.name || 'Theater'}
-                          </div>
-                          <div className="flex items-center mr-4">
-                            <svg
-                              className="h-4 w-4 mr-1.5 text-white/50"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            {formatDate(booking.showtime?.startTime) || 'N/A'}
-                          </div>
-                          <div className="flex items-center">
-                            <svg
-                              className="h-4 w-4 mr-1.5 text-white/50"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                            {booking.seats?.length || '0'} seat{
-                              booking.seats?.length !== 1 ? 's' : ''
-                            }
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 md:mt-0 flex items-center space-x-3">
-                        <div className="text-right">
-                          <p className="text-sm text-white/60">Total</p>
-                          <p className="text-xl font-bold text-brand">
-                            ${booking.totalAmount?.toFixed(2) || '0.00'}
-                          </p>
-                        </div>
-                        <Link
-                          to={`/bookings/${booking._id}`}
-                          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center group-hover:border-brand/50 group-hover:text-brand"
+              <>
+                {/* Active Bookings Section */}
+                {bookings.filter(b => b.paymentStatus !== 'cancelled').length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Active Bookings
+                    </h3>
+                    <div className="space-y-4">
+                      {bookings.filter(b => b.paymentStatus !== 'cancelled').map((booking) => (
+                        <div
+                          key={booking._id}
+                          className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-brand/10"
                         >
-                          <span>View Details</span>
-                          <svg
-                            className="ml-2 h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </Link>
-                      </div>
+                          <div className="flex flex-col md:flex-row">
+                            {/* Movie Poster */}
+                            {(booking.showtime?.movie?.poster || booking.movie?.poster) && (
+                              <div className="flex-shrink-0 w-full md:w-32 h-48 md:h-auto">
+                                <img
+                                  src={booking.showtime?.movie?.poster || booking.movie?.poster}
+                                  alt={booking.showtime?.movie?.title || booking.movie?.title || 'Movie'}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Booking Details */}
+                            <div className="flex-1 p-5">
+                              <div className="flex flex-col md:flex-row md:items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center flex-wrap gap-2">
+                                    <h3 className="text-lg font-semibold text-white group-hover:text-brand transition-colors duration-200">
+                                      {booking.showtime?.movie?.title || booking.movie?.title || 'Movie'}
+                                    </h3>
+                                    {/* Payment Status Badge */}
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                        booking.paymentStatus === 'paid'
+                                          ? 'bg-green-900/30 text-green-400 border border-green-800/50'
+                                          : booking.paymentStatus === 'cancelled'
+                                          ? 'bg-red-900/30 text-red-400 border border-red-800/50'
+                                          : 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50'
+                                      }`}
+                                    >
+                                      {(booking.paymentStatus || 'pending')?.charAt(0).toUpperCase() +
+                                        (booking.paymentStatus || 'pending')?.slice(1)}
+                                    </span>
+                                    {/* Show Status Badge (Active/Ongoing/Completed) */}
+                                    {booking.paymentStatus === 'paid' && (() => {
+                                      const now = new Date();
+                                      const startTime = booking.showtime?.startTime 
+                                        ? new Date(booking.showtime.startTime)
+                                        : null;
+                                      const endTime = booking.showtime?.endTime 
+                                        ? new Date(booking.showtime.endTime)
+                                        : null;
+                                      
+                                      let status, color;
+                                      if (!startTime || !endTime) {
+                                        return null;
+                                      } else if (now < startTime) {
+                                        status = 'Active';
+                                        color = 'blue';
+                                      } else if (now >= startTime && now < endTime) {
+                                        status = 'Ongoing';
+                                        color = 'yellow';
+                                      } else {
+                                        status = 'Completed';
+                                        color = 'gray';
+                                      }
+                                      
+                                      return (
+                                        <span
+                                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            color === 'blue'
+                                              ? 'bg-blue-900/30 text-blue-400 border border-blue-800/50'
+                                              : color === 'yellow'
+                                              ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50'
+                                              : 'bg-gray-900/30 text-gray-400 border border-gray-800/50'
+                                          }`}
+                                        >
+                                          {status}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                  
+                                  {/* Movie Details */}
+                                  {(booking.showtime?.movie?.genre || booking.showtime?.movie?.duration) && (
+                                    <div className="mt-2 flex items-center text-sm text-white/60 gap-3">
+                                      {booking.showtime?.movie?.genre && (
+                                        <span className="flex items-center">
+                                          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                          </svg>
+                                          {booking.showtime.movie.genre}
+                                        </span>
+                                      )}
+                                      {booking.showtime?.movie?.duration && (
+                                        <span className="flex items-center">
+                                          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                          {booking.showtime.movie.duration} min
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="mt-3 flex flex-wrap items-center text-sm text-white/70 gap-y-2">
+                                    <div className="flex items-center mr-4">
+                                      <svg
+                                        className="h-4 w-4 mr-1.5 text-white/50"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                        />
+                                      </svg>
+                                      {booking.showtime?.theater?.name || booking.theater?.name || 'Theater'}
+                                    </div>
+                                    <div className="flex items-center mr-4">
+                                      <svg
+                                        className="h-4 w-4 mr-1.5 text-white/50"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                      </svg>
+                                      {formatDate(booking.showtime?.startTime) || 'N/A'}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <svg
+                                        className="h-4 w-4 mr-1.5 text-white/50"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                                        />
+                                      </svg>
+                                      {booking.seats?.length || '0'} seat{booking.seats?.length !== 1 ? 's' : ''} • {booking.seats?.map((s) => `${s.row}${s.seat}`).join(', ')}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-4 md:mt-0 flex flex-col md:flex-row items-start md:items-center gap-3">
+                                  <div className="text-left md:text-right">
+                                    <p className="text-sm text-white/60">Total Amount</p>
+                                    <p className="text-xl font-bold text-brand">
+                                      ₹{booking.totalAmount?.toFixed(2) || '0.00'}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Link
+                                      to={`/bookings/${booking._id}`}
+                                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center group-hover:border-brand/50 group-hover:text-brand"
+                                    >
+                                      <span>View</span>
+                                      <svg
+                                        className="ml-2 h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 5l7 7-7 7"
+                                        />
+                                      </svg>
+                                    </Link>
+                                    {/* Cancel Button - Only show for paid bookings before show starts */}
+                                    {booking.paymentStatus === 'paid' && (() => {
+                                      const now = new Date();
+                                      const showStartTime = booking.showtime?.startTime 
+                                        ? new Date(booking.showtime.startTime)
+                                        : null;
+                                      const canCancel = showStartTime && showStartTime > now;
+                                      
+                                      if (canCancel) {
+                                        return (
+                                          <button
+                                            onClick={() => handleCancelBooking(booking._id)}
+                                            className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-600/50 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                                          >
+                                            <svg
+                                              className="mr-2 h-4 w-4"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M6 18L18 6M6 6l12 12"
+                                              />
+                                            </svg>
+                                            Cancel
+                                          </button>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {/* Cancelled Bookings Section */}
+                {bookings.filter(b => b.paymentStatus === 'cancelled').length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Cancelled Bookings
+                    </h3>
+                    <div className="space-y-4">
+                      {bookings.filter(b => b.paymentStatus === 'cancelled').map((booking) => (
+                        <div
+                          key={booking._id}
+                          className="bg-white/5 border border-red-900/30 rounded-xl overflow-hidden opacity-75"
+                        >
+                          <div className="flex flex-col md:flex-row">
+                            {/* Movie Poster */}
+                            {(booking.showtime?.movie?.poster || booking.movie?.poster) && (
+                              <div className="flex-shrink-0 w-full md:w-32 h-48 md:h-auto relative">
+                                <img
+                                  src={booking.showtime?.movie?.poster || booking.movie?.poster}
+                                  alt={booking.showtime?.movie?.title || booking.movie?.title || 'Movie'}
+                                  className="w-full h-full object-cover grayscale"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                                    CANCELLED
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Booking Details */}
+                            <div className="flex-1 p-5">
+                              <div className="flex flex-col md:flex-row md:items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center flex-wrap gap-2">
+                                    <h3 className="text-lg font-semibold text-white/80">
+                                      {booking.showtime?.movie?.title || booking.movie?.title || 'Movie'}
+                                    </h3>
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-800/50">
+                                      Cancelled
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="mt-3 flex flex-wrap items-center text-sm text-white/60 gap-y-2">
+                                    <div className="flex items-center mr-4">
+                                      <svg className="h-4 w-4 mr-1.5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                      </svg>
+                                      {booking.showtime?.theater?.name || booking.theater?.name || 'Theater'}
+                                    </div>
+                                    <div className="flex items-center mr-4">
+                                      <svg className="h-4 w-4 mr-1.5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      {formatDate(booking.showtime?.startTime) || 'N/A'}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <svg className="h-4 w-4 mr-1.5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                      </svg>
+                                      {booking.seats?.length || '0'} seat{booking.seats?.length !== 1 ? 's' : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-4 md:mt-0 flex flex-col md:flex-row items-start md:items-center gap-3">
+                                  <div className="text-left md:text-right">
+                                    <p className="text-sm text-white/60">Refunded</p>
+                                    <p className="text-xl font-bold text-white/70 line-through">
+                                      ₹{booking.totalAmount?.toFixed(2) || '0.00'}
+                                    </p>
+                                  </div>
+                                  <Link
+                                    to={`/bookings/${booking._id}`}
+                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+                                  >
+                                    <span>View</span>
+                                    <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
     </div>
-  )
+  );
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

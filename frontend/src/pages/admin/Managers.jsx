@@ -59,10 +59,14 @@ export default function AdminManagers() {
       setLoading(true);
       setError(null);
       const [managersData, theatersData] = await Promise.all([
-        adminService.getUsers({ role: 'theaterManager' }),
+        adminService.getTheaterManagers(),
         adminService.getTheaters(),
       ]);
-      setManagers(managersData.data.users || []);
+      // Filter to ensure only theaterManager role users are shown (safety measure)
+      const theaterManagers = (managersData.data.theaterManagers || []).filter(
+        user => user.role === 'theaterManager'
+      );
+      setManagers(theaterManagers);
       setTheaters(theatersData.data.theaters || []);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -145,23 +149,48 @@ export default function AdminManagers() {
       if (currentManager._id) {
         // Update user (name, phone, isActive)
         await adminService.updateUser(currentManager._id, managerData);
-        // Assign theaters separately
-        if (Array.isArray(currentManager.managedTheaters)) {
-          await adminService.assignTheatersToManager(currentManager._id, currentManager.managedTheaters);
-        }
+        // Assign theaters separately - ensure we always send an array, even if empty
+        const theaterIds = Array.isArray(currentManager.managedTheaters) 
+          ? currentManager.managedTheaters.map(id => {
+              // Ensure we send strings, not objects
+              if (typeof id === 'string') return id;
+              if (id && typeof id === 'object' && id._id) return id._id;
+              return id;
+            }).filter(id => id) // Remove any null/undefined values
+          : [];
+        await adminService.assignTheatersToManager(currentManager._id, theaterIds);
         toast.success('Manager updated successfully');
       } else {
         // Create new manager with role and managedTheaters
-        const newManager = await adminService.createManager({
+        const newManagerResponse = await adminService.createManager({
           ...managerData,
           role: 'theaterManager',
           managedTheaters: Array.isArray(currentManager.managedTheaters) ? currentManager.managedTheaters : []
         });
         
+        // Extract the manager ID from the response
+        // Response structure: { status, data: { theaterManager: { _id, ... } } }
+        const newManagerId = newManagerResponse?.data?.theaterManager?._id || 
+                            newManagerResponse?.theaterManager?._id || 
+                            newManagerResponse?._id;
+        
+        if (!newManagerId) {
+          throw new Error('Failed to get manager ID from response');
+        }
+        
         // If there are theaters to assign, do it after creation
-        if (Array.isArray(currentManager.managedTheaters) && currentManager.managedTheaters.length > 0) {
+        const theaterIds = Array.isArray(currentManager.managedTheaters) 
+          ? currentManager.managedTheaters.map(id => {
+              // Ensure we send strings, not objects
+              if (typeof id === 'string') return id;
+              if (id && typeof id === 'object' && id._id) return id._id;
+              return id;
+            }).filter(id => id) // Remove any null/undefined values
+          : [];
+        
+        if (theaterIds.length > 0) {
           try {
-            await adminService.assignTheatersToManager(newManager._id, currentManager.managedTheaters);
+            await adminService.assignTheatersToManager(newManagerId, theaterIds);
           } catch (assignError) {
             console.error('Error assigning theaters:', assignError);
             toast.warning('Manager created, but there was an error assigning theaters');
@@ -211,10 +240,10 @@ export default function AdminManagers() {
     }
     if (managers.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-300">
           <FiUserCheck className="text-5xl mb-3" />
-          <h3 className="text-xl font-semibold text-gray-300">No Managers Found</h3>
-          <p className="mt-1">Get started by adding a new theater manager.</p>
+          <h3 className="text-xl font-semibold text-white">No Managers Found</h3>
+          <p className="mt-1 text-gray-300">Get started by adding a new theater manager.</p>
         </div>
       );
     }
@@ -225,10 +254,10 @@ export default function AdminManagers() {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-800">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Manager</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Assigned Theaters</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Manager</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Contact</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Assigned Theaters</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Status</th>
                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -242,16 +271,49 @@ export default function AdminManagers() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-white">{manager.name}</div>
-                        <div className="text-sm text-gray-400">{manager.email}</div>
+                        <div className="text-sm text-gray-300">{manager.email}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{manager.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {(manager.managedTheaters || []).length > 0
-                      ? manager.managedTheaters.map(t => theaters.find(th => th._id === t)?.name || '...').join(', ')
-                      : <span className="text-gray-500">None</span>
-                    }
+                  <td className="px-6 py-4 text-sm text-gray-300">
+                    {(manager.managedTheaters || []).length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {manager.managedTheaters.map((t, index) => {
+                          // Handle both populated objects and IDs
+                          let theaterName = null;
+                          let theaterCity = null;
+                          
+                          if (typeof t === 'object' && t !== null && t.name) {
+                            // If it's a populated object, use the name and city directly
+                            theaterName = t.name;
+                            theaterCity = t.city;
+                          } else {
+                            // If it's an ID string, find it in the theaters array
+                            const theaterId = typeof t === 'string' ? t : (t?._id?.toString() || t?.toString());
+                            const theater = theaters.find(th => {
+                              const thId = th._id?.toString() || th._id;
+                              return thId === theaterId;
+                            });
+                            theaterName = theater?.name || 'Unknown Theater';
+                            theaterCity = theater?.city;
+                          }
+                          
+                          return (
+                            <span 
+                              key={index} 
+                              className="inline-flex items-center px-2.5 py-1 bg-blue-900/50 text-blue-200 rounded-md text-xs font-medium border border-blue-700/50"
+                              title={theaterCity ? `${theaterName}, ${theaterCity}` : theaterName}
+                            >
+                              {theaterName}
+                              {theaterCity && <span className="ml-1 text-blue-300/70">({theaterCity})</span>}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic">None</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${manager.isActive ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}>
@@ -276,9 +338,9 @@ export default function AdminManagers() {
   };
 
   return (
-    <div className="text-white">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Manager Management</h1>
+        <h1 className="text-3xl font-bold text-red-900">Manager Management</h1>
         <button onClick={() => handleOpenModal()} className="flex items-center px-4 py-2.5 bg-brand hover:bg-brand-dark text-white font-medium rounded-lg shadow-lg hover:shadow-brand/30 transition-all duration-200">
           <FiUserPlus className="w-5 h-5 mr-2" />
           Add New Manager

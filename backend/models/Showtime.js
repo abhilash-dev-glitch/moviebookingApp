@@ -24,6 +24,10 @@ const showtimeSchema = new mongoose.Schema(
       type: Date,
       required: [true, 'Please provide show end time'],
     },
+    endDate: {
+      type: Date,
+      required: [true, 'Please provide show end date (last day of show)'],
+    },
     price: {
       type: Number,
       required: [true, 'Please provide ticket price'],

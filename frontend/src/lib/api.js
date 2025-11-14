@@ -79,7 +79,9 @@ export const BookingAPI = {
   unlockSeat: (showtimeId, seatData) => api.post(`/bookings/unlock-seat`, { showtimeId, ...seatData }).then(r => r.data.data),
   checkSeats: (payload) => api.post('/bookings/check-seats', payload).then(r => r.data.data),
   create: (payload) => api.post('/bookings', payload).then(r => r.data.data.booking),
+  get: (id) => api.get(`/bookings/${id}`).then(r => r.data.data.booking),
   myBookings: () => api.get('/bookings/my-bookings').then(r => r.data.data.bookings),
+  cancelBooking: (id) => api.delete(`/bookings/${id}`).then(r => r.data.data.booking),
 }
 
 export const TheatersAPI = {

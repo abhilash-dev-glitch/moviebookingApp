@@ -45,6 +45,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1', reviewRoutes); // <-- REVIEW ROUTES MUST BE BEFORE MOVIE ROUTES
 app.use('/api/v1/movies', movieRoutes);
 app.use('/api/v1/theaters', theaterRoutes);
 app.use('/api/v1/showtimes', showtimeRoutes);
@@ -52,7 +53,6 @@ app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
-app.use('/api/v1', reviewRoutes); // <-- 2. USE REVIEW ROUTES
 
 // Handle undefined routes 
 app.use(notFound);

@@ -93,12 +93,16 @@ export default function AdminDashboard() {
       
       const data = await adminService.getDashboardStats();
 
+      // Calculate net revenue (total revenue - cancelled bookings)
+      const cancelledRevenue = data.cancelledRevenue || 0;
+      const netRevenue = (data.totalRevenue || 0) - cancelledRevenue;
+
       setStats({
         totalUsers: data.totalUsers,
         totalMovies: data.totalMovies,
         totalTheaters: data.totalTheaters,
         totalBookings: data.totalBookings,
-        totalRevenue: data.totalRevenue,
+        totalRevenue: netRevenue, // Net revenue after subtracting cancellations
       });
 
       setRecentBookings(data.recentBookings);
@@ -165,6 +169,17 @@ export default function AdminDashboard() {
               }));
               setRevenueData(formattedData);
           });
+        }
+
+        if (message.type === 'BOOKING_CANCELLED') {
+          const cancelledBooking = message.payload;
+          toast.warning('Booking Cancelled', `A booking of ${formatCurrency(cancelledBooking.totalAmount)} was cancelled.`);
+          setStats((prevStats) => ({
+            ...prevStats,
+            totalRevenue: prevStats.totalRevenue - cancelledBooking.totalAmount,
+          }));
+          // Re-fetch data to update everything
+          fetchDashboardData();
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);

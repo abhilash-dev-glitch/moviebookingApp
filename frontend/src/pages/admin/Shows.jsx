@@ -155,6 +155,7 @@ export default function AdminShows() {
         movie: show.movie?._id,
         theater: show.theater?._id,
         date: startTime.toISOString().split('T')[0],
+        endDate: show.endDate ? new Date(show.endDate).toISOString().split('T')[0] : startTime.toISOString().split('T')[0],
         startTime: startTime.toTimeString().slice(0, 5),
       });
     } else {
@@ -205,14 +206,22 @@ export default function AdminShows() {
     e.preventDefault();
     if (!currentShow) return;
 
+    // Validate end date is not before start date
+    if (new Date(currentShow.endDate) < new Date(currentShow.date)) {
+      toast.error('End date cannot be before start date');
+      return;
+    }
+
     // Combine date and time into a full ISO string for start and end
     const startDateTime = new Date(`${currentShow.date}T${currentShow.startTime}`);
     const endDateTime = new Date(`${currentShow.date}T${currentShow.endTime}`);
+    const endDateOnly = new Date(currentShow.endDate);
 
     const showData = {
       ...currentShow,
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
+      endDate: endDateOnly.toISOString(),
       price: Number(currentShow.price),
       availableSeats: Number(currentShow.availableSeats),
       totalSeats: Number(currentShow.totalSeats),
@@ -265,9 +274,9 @@ export default function AdminShows() {
 
     if (showtimes.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-300">
           <FiVideo className="text-5xl mb-3" />
-          <h3 className="text-xl font-semibold text-gray-300">No Shows Found</h3>
+          <h3 className="text-xl font-semibold text-white">No Shows Found</h3>
           <p className="mt-1">Get started by adding a new show.</p>
         </div>
       );
@@ -279,12 +288,12 @@ export default function AdminShows() {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-800">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Movie</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Theater & Screen</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time & Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Seats</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Movie</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Theater & Screen</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Time & Date</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Seats</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Price</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Status</th>
                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -296,17 +305,17 @@ export default function AdminShows() {
                       <img className="h-16 w-12 rounded-md object-cover border border-gray-700" src={show.movie?.poster || 'https://placehold.co/128x176/1f2937/9ca3af?text=N/A'} alt={show.movie?.title} />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-white">{show.movie?.title}</div>
-                        <div className="text-xs text-gray-400">{show.movie?.language}</div>
+                        <div className="text-xs text-gray-300">{show.movie?.language}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-white">{show.theater?.name}</div>
-                    <div className="text-sm text-gray-400">{show.screen}</div>
+                    <div className="text-sm text-gray-300">{show.screen}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-white">{new Date(show.startTime).toLocaleDateString()}</div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-300">
                       {new Date(show.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(show.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </td>
@@ -317,7 +326,7 @@ export default function AdminShows() {
                     ₹{show.price}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${show.isActive ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-gray-900/50 text-gray-400 border border-gray-700'}`}>
+                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${show.isActive ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-gray-900/50 text-gray-300 border border-gray-700'}`}>
                       {show.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -339,9 +348,9 @@ export default function AdminShows() {
   };
 
   return (
-    <div className="text-white">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Show Management</h1>
+        <h1 className="text-3xl font-bold text-red-900">Show Management</h1>
         <button onClick={() => handleOpenModal()} className="flex items-center px-4 py-2.5 bg-brand hover:bg-brand-dark text-white font-medium rounded-lg shadow-lg hover:shadow-brand/30 transition-all duration-200">
           <FiPlus className="w-5 h-5 mr-2" />
           Add New Show
@@ -380,8 +389,24 @@ export default function AdminShows() {
           </FormInput>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormInput label="Date" name="date" type="date" value={currentShow?.date} onChange={handleFormChange} required />
+            <FormInput label="Start Date" name="date" type="date" value={currentShow?.date} onChange={handleFormChange} required />
+            <FormInput label="End Date (Last day of show)" name="endDate" type="date" value={currentShow?.endDate} onChange={handleFormChange} required />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormInput label="Start Time" name="startTime" type="time" value={currentShow?.startTime} onChange={handleFormChange} required />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Show Duration</label>
+              <div className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-400">
+                {currentShow?.date && currentShow?.endDate ? (
+                  <>
+                    {Math.ceil((new Date(currentShow.endDate) - new Date(currentShow.date)) / (1000 * 60 * 60 * 24)) + 1} days
+                  </>
+                ) : (
+                  'Select dates to see duration'
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

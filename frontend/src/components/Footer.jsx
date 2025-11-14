@@ -1,6 +1,6 @@
 export default function Footer(){
   return (
-    <footer className="bg-[#111528] text-white/80 mt-16">
+    <footer className="bg-[#111528] text-white/80 mt-auto">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-wrap items-center justify-between py-6 gap-4">
           <div className="font-medium flex items-center gap-2">
@@ -18,7 +18,7 @@ export default function Footer(){
           <div className="opacity-80">PARTNER WITH US</div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 py-10 text-xs text-center text-white/40">© {new Date().getFullYear()} CineGo — Demo UI</div>
+      <div className="max-w-7xl mx-auto px-4 py-6 text-xs text-center text-white/40">© {new Date().getFullYear()} CineGo — Demo UI</div>
     </footer>
   )
 }

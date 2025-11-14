@@ -1,0 +1,49 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║   🚨 IMPORTANT: START THE NOTIFICATION WORKER! 🚨                ║
+║                                                                  ║
+║   Without this worker running, emails won't be sent!            ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📋 QUICK START:
+
+1. Open a NEW terminal window
+2. Navigate to backend folder:
+   
+   cd backend
+
+3. Start the worker:
+   
+   npm run worker
+
+4. Keep this terminal open!
+
+You should see:
+✅ MongoDB connected
+✅ RabbitMQ connected (or fallback mode)
+📬 Listening for messages...
+
+Now your cancellation emails (and all other emails) will be sent!
+
+═══════════════════════════════════════════════════════════════════
+
+💡 TIP: You need 3 terminals running:
+
+Terminal 1: Backend Server     → npm run dev
+Terminal 2: Notification Worker → npm run worker  ← YOU ARE HERE
+Terminal 3: Frontend           → npm run dev
+
+═══════════════════════════════════════════════════════════════════
+
+🧪 TEST IT:
+
+After starting the worker, test cancellation emails:
+
+npm run test:cancellation
+
+═══════════════════════════════════════════════════════════════════
+
+📚 MORE INFO:
+
+See QUICK_FIX_CANCELLATION_EMAIL.md for detailed instructions

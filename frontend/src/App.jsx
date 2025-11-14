@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './index.css'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -10,8 +10,7 @@ import MovieDetail from './pages/MovieDetail'
 import Showtimes from './pages/Showtimes'
 import SeatSelection from './pages/SeatSelection'
 import Checkout from './pages/Checkout'
-import SignIn from './pages/SignIn'
-import SignUp from './pages/SignUp'
+import Auth from './pages/Auth'
 import ProtectedRoute from './components/ProtectedRoute'
 import Profile from './pages/Profile'
 import { useEffect, useState } from 'react';
@@ -20,6 +19,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { store } from './store/store';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import BookingConfirmation from './pages/BookingConfirmation';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 import { checkAuth } from './store/authSlice';
@@ -32,11 +32,17 @@ import AdminTheaters from './pages/admin/Theaters'
 import AdminShows from './pages/admin/Shows'
 import AdminUsers from './pages/admin/Users'
 import AdminManagers from './pages/admin/Managers'
+import AdminBookings from './pages/admin/Bookings'
+import AdminCancellations from './pages/admin/Cancellations'
 
 // Import Manager components
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import ManageTheaters from './pages/manager/ManageTheaters' 
-import ManageShows from './pages/manager/ManageShows'     
+import ManagerMovies from './pages/manager/Movies'
+import ManagerScreens from './pages/manager/Screens'
+import ManageShows from './pages/manager/ManageShows'
+import ManageBookings from './pages/manager/ManageBookings'
+import ManageCancellations from './pages/manager/ManageCancellations'     
 
 // Memoized selectors for auth state
 const selectAuthState = (state) => state.auth;
@@ -54,6 +60,7 @@ function AppContent() {
   const user = useSelector(selectUser);
   const loading = useSelector(selectAuthLoading);
   const [authChecked, setAuthChecked] = useState(false);
+  const location = useLocation();
   
   useEffect(() => {
     // Check auth status on initial load
@@ -83,13 +90,16 @@ function AppContent() {
     );
   }
   
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isManagerRoute = location.pathname.startsWith('/manager');
+  const hideFooter = isAdminRoute || isManagerRoute;
+
   return (
-    <BrowserRouter>
-      <div className="min-h-dvh flex flex-col bg-surface">
-        <Toast />
-        <Navbar />
-        <main className="flex-1 pb-10">
-          <Routes>
+    <div className="min-h-screen flex flex-col bg-surface">
+      <Toast />
+      <Navbar />
+      <main className="flex-1">
+        <Routes>
             {/* Root path - Show Home component */}
             <Route path="/" element={
               <Home />
@@ -99,12 +109,6 @@ function AppContent() {
             <Route path="/admin" element={
               <ProtectedRoute roles={['admin']}>
                 <Navigate to="/admin/dashboard" replace />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/manager" element={
-              <ProtectedRoute roles={['theaterManager']}>
-                <Navigate to="/manager/dashboard" replace />
               </ProtectedRoute>
             } />
             
@@ -122,12 +126,12 @@ function AppContent() {
             {/* Auth routes with redirect if already logged in */}
             <Route path="/signin" element={
               <ProtectedRoute requireAuth={false}>
-                <SignIn />
+                <Auth />
               </ProtectedRoute>
             } />
             <Route path="/signup" element={
               <ProtectedRoute requireAuth={false}>
-                <SignUp />
+                <Auth />
               </ProtectedRoute>
             } />
             
@@ -137,10 +141,15 @@ function AppContent() {
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/bookings/:id" element={
+              <ProtectedRoute>
+                <BookingConfirmation />
+              </ProtectedRoute>
+            } />
 
             {/* --- ADMIN NESTED ROUTES --- */}
             <Route
-              path="/admin"
+              path="/admin/*"
               element={
                 <ProtectedRoute roles={["admin"]}>
                   <AdminLayout />
@@ -151,21 +160,27 @@ function AppContent() {
               <Route path="movies" element={<AdminMovies />} />
               <Route path="theaters" element={<AdminTheaters />} />
               <Route path="shows" element={<AdminShows />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="cancellations" element={<AdminCancellations />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="managers" element={<AdminManagers />} />
             </Route>
 
             {/* --- MANAGER NESTED ROUTES --- */}
             <Route
-              path="/manager"
+              path="/manager/*"
               element={
                 <ProtectedRoute roles={["theaterManager", "admin"]}>
                   <ManagerDashboard />
                 </ProtectedRoute>
               }
             >
-              <Route index element={<ManageTheaters />} />
+              <Route path="theaters" element={<ManageTheaters />} />
+              <Route path="movies" element={<ManagerMovies />} />
+              <Route path="screens" element={<ManagerScreens />} />
               <Route path="shows" element={<ManageShows />} />
+              <Route path="bookings" element={<ManageBookings />} />
+              <Route path="cancellations" element={<ManageCancellations />} />
             </Route>
             
             {/* 404 - Not Found */}
@@ -177,9 +192,8 @@ function AppContent() {
             } />
           </Routes>
         </main>
-        <Footer />
+        {!hideFooter && <Footer />}
       </div>
-    </BrowserRouter>
   );
 }
 
@@ -187,7 +201,9 @@ export default function App() {
   return (
     <Provider store={store}>
       <Elements stripe={stripePromise}>
-        <AppContent />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </Elements>
     </Provider>
   );

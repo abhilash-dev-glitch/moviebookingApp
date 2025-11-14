@@ -1,6 +1,4 @@
 const Review = require('../models/Review');
-const Booking = require('../models/Booking');
-const Showtime = require('../models/Showtime');
 const AppError = require('../utils/appError');
 
 // GET /api/v1/movies/:movieId/reviews
@@ -32,20 +30,9 @@ exports.createReview = async (req, res, next) => {
       return next(new AppError('Rating is required', 400));
     }
 
-    // Ensure user has a paid booking for this movie
-    const showtimeIds = await Showtime.find({ movie: movieId }).distinct('_id');
-    if (!showtimeIds || showtimeIds.length === 0) {
-      return next(new AppError('No showtimes found for this movie', 400));
-    }
-    const hasBooking = await Booking.exists({
-      user: userId,
-      paymentStatus: 'paid',
-      showtime: { $in: showtimeIds },
-    });
-    if (!hasBooking) {
-      return next(new AppError('You can only review a movie after booking', 403));
-    }
-
+    // Allow all authenticated users to submit reviews
+    // No booking requirement - users can review movies they've watched anywhere
+    
     let review;
     try {
       review = await Review.create({ movie: movieId, user: userId, rating, comment });

@@ -19,7 +19,8 @@ export default function SignIn(){
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [roleTarget, setRoleTarget] = useState('endUser')
+  const [validationErrors, setValidationErrors] = useState({})
+  const [touched, setTouched] = useState({})
   
   // If user is already logged in, AuthRedirect will handle the redirection
   useEffect(() => {
@@ -35,8 +36,61 @@ export default function SignIn(){
     };
   }, [dispatch]);
 
+  // Validation functions
+  const validateEmail = (email) => {
+    if (!email) return 'Email is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return 'Password is required';
+    if (password.length < 8) return 'Password must be at least 8 characters';
+    return '';
+  };
+
+  const handleEmailChange = (value) => {
+    setEmail(value);
+    if (touched.email) {
+      setValidationErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    }
+  };
+
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    if (touched.password) {
+      setValidationErrors(prev => ({ ...prev, password: validatePassword(value) }));
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    if (field === 'email') {
+      setValidationErrors(prev => ({ ...prev, email: validateEmail(email) }));
+    } else if (field === 'password') {
+      setValidationErrors(prev => ({ ...prev, password: validatePassword(password) }));
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const newErrors = {
+      email: validateEmail(email),
+      password: validatePassword(password)
+    };
+    
+    setValidationErrors(newErrors);
+    setTouched({ email: true, password: true });
+    
+    // Check if there are any errors
+    if (Object.values(newErrors).some(error => error !== '')) {
+      toast.error('Validation failed', 'Please fix the errors and try again.');
+      return;
+    }
+    
     const resultAction = await dispatch(login({ email, password }));
     
     if (login.fulfilled.match(resultAction)) {
@@ -74,23 +128,44 @@ export default function SignIn(){
           </ul>
         )}
         <div>
-          <label className="block text-sm mb-1">Sign in as</label>
-          <div className="grid grid-cols-3 gap-2 text-sm">
-            <button type="button" onClick={()=>setRoleTarget('endUser')} className={`px-3 py-2 rounded-lg border ${roleTarget==='endUser' ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}`}>User</button>
-            <button type="button" onClick={()=>setRoleTarget('theaterManager')} className={`px-3 py-2 rounded-lg border ${roleTarget==='theaterManager' ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}`}>Manager</button>
-            <button type="button" onClick={()=>setRoleTarget('admin')} className={`px-3 py-2 rounded-lg border ${roleTarget==='admin' ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}`}>Admin</button>
-          </div>
-          <p className="mt-1 text-xs text-white/60">Role selection affects where we redirect after login. Your actual role is verified by the server.</p>
-        </div>
-        <div>
           <label className="block text-sm mb-1">Email</label>
-          <input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2" required />
+          <input 
+            type="email" 
+            autoComplete="email" 
+            value={email} 
+            onChange={e=>handleEmailChange(e.target.value)}
+            onBlur={() => handleBlur('email')}
+            className={`w-full bg-white/5 border rounded-lg px-3 py-2 ${
+              touched.email && validationErrors.email 
+                ? 'border-red-500 focus:ring-red-500' 
+                : 'border-white/10 focus:ring-brand'
+            }`}
+            required 
+          />
+          {touched.email && validationErrors.email && (
+            <p className="text-red-400 text-xs mt-1">{validationErrors.email}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm mb-1">Password</label>
-          <input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2" required />
+          <input 
+            type="password" 
+            autoComplete="current-password" 
+            value={password} 
+            onChange={e=>handlePasswordChange(e.target.value)}
+            onBlur={() => handleBlur('password')}
+            className={`w-full bg-white/5 border rounded-lg px-3 py-2 ${
+              touched.password && validationErrors.password 
+                ? 'border-red-500 focus:ring-red-500' 
+                : 'border-white/10 focus:ring-brand'
+            }`}
+            required 
+          />
+          {touched.password && validationErrors.password && (
+            <p className="text-red-400 text-xs mt-1">{validationErrors.password}</p>
+          )}
         </div>
-        <button disabled={loading} className="w-full px-4 py-2 rounded-md bg-brand hover:bg-brand-dark transition text-white">{loading? 'Signing in...' : `Sign In as ${roleTarget==='endUser'?'User': roleTarget==='theaterManager'?'Manager':'Admin'}`}</button>
+        <button disabled={loading} className="w-full px-4 py-2 rounded-md bg-brand hover:bg-brand-dark transition text-white">{loading? 'Signing in...' : 'Sign In'}</button>
         <div className="text-sm text-white/70">Don't have an account? <Link to="/signup" className="text-brand">Create one</Link></div>
       </form>
     </div>

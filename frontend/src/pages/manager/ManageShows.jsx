@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { toast } from '../../lib/toast';
-import { FiPlus, FiTrash2, FiClock, FiFilm, FiDollarSign, FiCalendar, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiClock, FiFilm, FiEdit2 } from 'react-icons/fi';
 import { format, parseISO, isAfter } from 'date-fns';
 
 export default function ManageShows() {
@@ -11,11 +11,13 @@ export default function ManageShows() {
   const [shows, setShows] = useState([]);
   const [loadingShows, setLoadingShows] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingShow, setEditingShow] = useState(null);
   const [form, setForm] = useState({
     movie: '',
     screen: '',
     startTime: '',
     endTime: '',
+    endDate: '',
     price: 200,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -84,18 +86,25 @@ export default function ManageShows() {
     set('screen', '');
   }, [selectedTheaterId]);
 
-  const create = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.movie || !form.screen || !form.startTime || !form.endTime) {
+    if (!form.movie || !form.screen || !form.startTime || !form.endTime || !form.endDate) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     const startTime = new Date(form.startTime);
     const endTime = new Date(form.endTime);
+    const endDate = new Date(form.endDate);
+    const startDate = new Date(form.startTime.split('T')[0]);
     
     if (endTime <= startTime) {
       toast.error('End time must be after start time');
+      return;
+    }
+    
+    if (endDate < startDate) {
+      toast.error('End date cannot be before start date');
       return;
     }
 
@@ -107,19 +116,46 @@ export default function ManageShows() {
         price: Number(form.price || 0),
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
+        endDate: endDate.toISOString(),
       };
       
-      await api.post('/showtimes', payload);
-      toast.success('Show created successfully!');
-      setForm({ movie: '', screen: '', startTime: '', endTime: '', price: 200 });
+      if (editingShow) {
+        await api.patch(`/showtimes/${editingShow._id}`, payload);
+        toast.success('Show updated successfully!');
+      } else {
+        await api.post('/showtimes', payload);
+        toast.success('Show created successfully!');
+      }
+      
+      setForm({ movie: '', screen: '', startTime: '', endTime: '', endDate: '', price: 200 });
       setIsFormOpen(false);
+      setEditingShow(null);
       loadShows();
     } catch (err) {
-      console.error('Error creating show:', err);
-      toast.error('Failed to create show', err.response?.data?.message || 'Please try again');
+      console.error('Error saving show:', err);
+      toast.error(editingShow ? 'Failed to update show' : 'Failed to create show', err.response?.data?.message || 'Please try again');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const startEdit = (show) => {
+    setEditingShow(show);
+    setForm({
+      movie: typeof show.movie === 'object' ? show.movie._id : show.movie,
+      screen: show.screen,
+      startTime: new Date(show.startTime).toISOString().slice(0, 16),
+      endTime: new Date(show.endTime).toISOString().slice(0, 16),
+      endDate: show.endDate ? new Date(show.endDate).toISOString().split('T')[0] : '',
+      price: show.price,
+    });
+    setIsFormOpen(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingShow(null);
+    setForm({ movie: '', screen: '', startTime: '', endTime: '', endDate: '', price: 200 });
+    setIsFormOpen(false);
   };
 
   const remove = async (id) => {
@@ -154,7 +190,11 @@ export default function ManageShows() {
           </p>
         </div>
         <button
-          onClick={() => setIsFormOpen(!isFormOpen)}
+          onClick={() => {
+            setEditingShow(null);
+            setForm({ movie: '', screen: '', startTime: '', endTime: '', endDate: '', price: 200 });
+            setIsFormOpen(!isFormOpen);
+          }}
           className="flex items-center space-x-2 bg-brand hover:bg-brand/90 text-white px-4 py-2 rounded-lg transition-colors"
         >
           <FiPlus />
@@ -179,17 +219,17 @@ export default function ManageShows() {
         </select>
       </div>
 
-      {/* Add Show Form */}
+      {/* Add/Edit Show Form */}
       {isFormOpen && (
         <form
-          onSubmit={create}
+          onSubmit={handleSubmit}
           className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4 animate-fadeIn"
         >
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Add New Show</h3>
+            <h3 className="text-lg font-semibold">{editingShow ? 'Edit Show' : 'Add New Show'}</h3>
             <button
               type="button"
-              onClick={() => setIsFormOpen(false)}
+              onClick={cancelEdit}
               className="text-gray-400 hover:text-white"
             >
               ×
@@ -234,7 +274,7 @@ export default function ManageShows() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Start Time</label>
+              <label className="block text-sm font-medium mb-1">Start Date & Time</label>
               <input
                 type="datetime-local"
                 value={form.startTime}
@@ -247,7 +287,25 @@ export default function ManageShows() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">End Time</label>
+              <label className="block text-sm font-medium mb-1">End Date (Last day of show)</label>
+              <input
+                type="date"
+                value={form.endDate}
+                onChange={(e) => set('endDate', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand/50 focus:border-brand/50 outline-none transition"
+                required
+                disabled={isLoading}
+                min={form.startTime ? form.startTime.split('T')[0] : new Date().toISOString().split('T')[0]}
+              />
+              {form.startTime && form.endDate && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Show will run for {Math.ceil((new Date(form.endDate) - new Date(form.startTime.split('T')[0])) / (1000 * 60 * 60 * 24)) + 1} days
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">End Time (per show)</label>
               <input
                 type="datetime-local"
                 value={form.endTime}
@@ -279,7 +337,7 @@ export default function ManageShows() {
           <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsFormOpen(false)}
+              onClick={cancelEdit}
               className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/5 transition-colors"
               disabled={isLoading}
             >
@@ -290,8 +348,8 @@ export default function ManageShows() {
               className="px-6 py-2 bg-brand hover:bg-brand/90 text-white rounded-lg transition-colors flex items-center space-x-2"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating...' : 'Create Show'}
-              {!isLoading && <FiPlus size={18} />}
+              {isLoading ? (editingShow ? 'Updating...' : 'Creating...') : (editingShow ? 'Update Show' : 'Create Show')}
+              {!isLoading && (editingShow ? <FiEdit2 size={18} /> : <FiPlus size={18} />)}
             </button>
           </div>
         </form>
@@ -340,7 +398,6 @@ export default function ManageShows() {
                   </div>
                   <div className="divide-y divide-white/5">
                     {dateShows.map((show) => {
-                      const movie = movies.find(m => m._id === show.movie);
                       const screen = availableScreens.find(s => s._id === show.screen);
                       const isShowPast = isAfter(new Date(), new Date(show.endTime));
                       
@@ -350,10 +407,10 @@ export default function ManageShows() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center space-x-3">
                                 <div className="flex-shrink-0 w-16 h-24 bg-gray-700 rounded-md overflow-hidden">
-                                  {movie?.posterUrl ? (
+                                  {show.movie?.poster ? (
                                     <img 
-                                      src={movie.posterUrl} 
-                                      alt={movie.title} 
+                                      src={show.movie.poster} 
+                                      alt={show.movie.title} 
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
@@ -363,7 +420,7 @@ export default function ManageShows() {
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <h4 className="font-medium truncate">{movie?.title || 'Unknown Movie'}</h4>
+                                  <h4 className="font-medium truncate">{show.movie?.title || 'Unknown Movie'}</h4>
                                   <div className="flex flex-wrap items-center mt-1 text-sm text-gray-400 space-x-3">
                                     <span className="flex items-center">
                                       <FiClock className="mr-1.5 h-3.5 w-3.5" />
@@ -380,6 +437,14 @@ export default function ManageShows() {
                               </div>
                             </div>
                             <div className="ml-4 flex-shrink-0 flex items-center space-x-2">
+                              <button
+                                onClick={() => startEdit(show)}
+                                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 rounded-full transition-colors"
+                                title="Edit show"
+                                disabled={isLoading}
+                              >
+                                <FiEdit2 className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => remove(show._id)}
                                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-full transition-colors"

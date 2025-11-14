@@ -255,11 +255,75 @@ const getLockedSeatsForShowtime = async (showtimeId) => {
   }
 };
 
+/**
+ * Clean up locks for expired showtimes
+ * @param {string} showtimeId - Showtime ID
+ * @returns {Promise<number>} Number of locks released
+ */
+const cleanupExpiredShowLocks = async (showtimeId) => {
+  try {
+    let redis;
+    try {
+      redis = getRedisClient();
+    } catch (error) {
+      console.warn('⚠️  Redis not available, skipping cleanup');
+      return 0;
+    }
+    
+    const pattern = `seat_lock:${showtimeId}:*`;
+    const keys = await redis.keys(pattern);
+    
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      console.log(`🧹 Cleaned up ${keys.length} seat locks for expired showtime ${showtimeId}`);
+      return keys.length;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Error cleaning up expired show locks:', error);
+    return 0;
+  }
+};
+
+/**
+ * Clean up all locks for expired showtimes
+ * @returns {Promise<number>} Total number of locks released
+ */
+const cleanupAllExpiredShows = async () => {
+  try {
+    const Showtime = require('../models/Showtime');
+    const now = new Date();
+    
+    // Find all showtimes that have ended
+    const expiredShowtimes = await Showtime.find({
+      endTime: { $lt: now }
+    }).select('_id');
+    
+    let totalCleaned = 0;
+    for (const showtime of expiredShowtimes) {
+      const cleaned = await cleanupExpiredShowLocks(showtime._id.toString());
+      totalCleaned += cleaned;
+    }
+    
+    if (totalCleaned > 0) {
+      console.log(`🧹 Total cleanup: Released ${totalCleaned} seat locks from ${expiredShowtimes.length} expired shows`);
+    }
+    
+    return totalCleaned;
+  } catch (error) {
+    console.error('Error cleaning up all expired shows:', error);
+    return 0;
+  }
+};
+
 module.exports = {
   lockSeats,
   releaseSeats,
   checkSeatsLocked,
   extendSeatLock,
   getLockedSeatsForShowtime,
+  cleanupExpiredShowLocks,
+  cleanupAllExpiredShows,
   LOCK_DURATION,
 };

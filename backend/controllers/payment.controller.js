@@ -213,7 +213,7 @@ exports.verifyPayment = async (req, res, next) => {
     await booking.save();
 
     // Send payment confirmation notification (async via queue)
-    await sendPaymentConfirmation(payment, booking, booking.user, { sms: false });
+    await sendPaymentConfirmation(payment, booking, booking.user, { sms: true });
 
     res.status(200).json({
       status: 'success',

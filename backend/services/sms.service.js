@@ -1,4 +1,5 @@
 const twilio = require('twilio');
+const { getTargetPhone } = require('../utils/notificationHelper');
 
 let twilioClient = null;
 
@@ -35,19 +36,22 @@ const sendSMS = async (to, message) => {
     
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
     
-    if (!fromNumber) {
-      console.error('❌ Twilio phone number not configured');
+    if (!fromNumber || fromNumber === '+1234567890') {
+      console.error('❌ Twilio phone number not configured or using placeholder');
       return { success: false, error: 'Twilio phone number not configured' };
     }
+    
+    // Get target phone with fallback logic
+    const targetPhone = getTargetPhone(to);
     
     const result = await twilioClient.messages.create({
       body: message,
       from: fromNumber,
-      to: to,
+      to: targetPhone,
     });
     
-    console.log(`✅ SMS sent to ${to}: ${result.sid}`);
-    return { success: true, sid: result.sid };
+    console.log(`✅ SMS sent to ${targetPhone}: ${result.sid}`);
+    return { success: true, sid: result.sid, to: targetPhone };
   } catch (error) {
     console.error('❌ Failed to send SMS:', error.message);
     return { success: false, error: error.message };
@@ -94,9 +98,27 @@ const sendCancellationSMS = async (booking, user) => {
  * Send OTP SMS
  */
 const sendOTP = async (phone, otp) => {
-  const message = `Your Movie Booking OTP is: ${otp}. Valid for 10 minutes. Do not share this code with anyone.`;
+  const message = `Your CineGo OTP is: ${otp}. Valid for 10 minutes. Do not share this code with anyone.`;
   
   return await sendSMS(phone, message);
+};
+
+/**
+ * Send welcome SMS
+ */
+const sendWelcomeSMS = async (user) => {
+  const message = `Welcome to CineGo, ${user.name}! 🎬 Start booking your favorite movies now. Download tickets, get reminders, and enjoy seamless movie experiences. Happy watching!`;
+  
+  return await sendSMS(user.phone, message);
+};
+
+/**
+ * Send profile update SMS
+ */
+const sendProfileUpdateSMS = async (user) => {
+  const message = `Hi ${user.name}, your CineGo profile has been updated successfully. If you didn't make this change, please contact support immediately.`;
+  
+  return await sendSMS(user.phone, message);
 };
 
 module.exports = {
@@ -107,4 +129,6 @@ module.exports = {
   sendBookingReminderSMS,
   sendCancellationSMS,
   sendOTP,
+  sendWelcomeSMS,
+  sendProfileUpdateSMS,
 };

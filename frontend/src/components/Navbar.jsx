@@ -1,28 +1,40 @@
-import { Link, useLocation, NavLink } from 'react-router-dom';
+import { Link, useLocation, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 
 export default function Navbar() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logout());
+    navigate('/signin', { replace: true });
   };
 
   const location = useLocation();
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('Mumbai');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const isAdmin = user?.role === 'admin';
+  const isTheaterManager = user?.role === 'theaterManager';
 
-  const navItems = isAdmin 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/movies?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  const navItems = (isAdmin || isTheaterManager)
     ? [] 
     : [
-        { to: '/', label: 'Movies' },
+        { to: '/#movies', label: 'Movies' },
         { to: '/stream', label: 'Stream' },
-        { to: '/events', label: 'Events' },
+        { to: '/#events', label: 'Events' },
         { to: '/plays', label: 'Plays' },
         { to: '/sports', label: 'Sports' },
         { to: '/activities', label: 'Activities' },
@@ -40,7 +52,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link 
-              to={isAdmin ? '/admin' : '/'} 
+              to={isAdmin ? '/admin' : isTheaterManager ? '/manager' : '/'} 
               className="flex items-center space-x-2 group transition-all duration-200"
             >
               <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-brand-dark text-white transform group-hover:rotate-12 transition-transform duration-300">
@@ -54,14 +66,9 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:ml-6 md:flex md:items-center md:space-x-1">
-            <div className="flex items-center relative w-80 mr-4">
-              <input
-                type="text"
-                placeholder="Search movies, cinemas, events..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-transparent transition-all duration-200"
-              />
+            <form onSubmit={handleSearch} className="relative w-80 mr-4">
               <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-white/50"
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50 pointer-events-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -74,7 +81,14 @@ export default function Navbar() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-            </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search movies, cinemas, events..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-transparent transition-all duration-200"
+              />
+            </form>
 
             <nav className="flex space-x-1">
               {navItems.map((item) => (
@@ -95,8 +109,8 @@ export default function Navbar() {
             </nav>
           </div>
 
-          {/* Location Selector - Hidden for Admin */}
-          {!isAdmin && (
+          {/* Location Selector - Hidden for Admin and Theater Manager */}
+          {!isAdmin && !isTheaterManager && (
             <div className="hidden md:flex items-center mr-4 relative">
               <button 
                 onClick={() => setShowLocationDropdown(!showLocationDropdown)}
@@ -241,7 +255,7 @@ export default function Navbar() {
                         </div>
                         <div className="px-1.5 py-1">
                           <Link
-                            to={isAdmin ? '/admin' : '/'}
+                            to={isAdmin ? '/admin' : isTheaterManager ? '/manager' : '/'}
                             className="flex items-center px-3 py-2 text-sm rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors duration-150 group"
                           >
                             <svg
@@ -257,7 +271,7 @@ export default function Navbar() {
                                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                               />
                             </svg>
-                            {isAdmin ? 'Dashboard' : 'Home'}
+                            {isAdmin ? 'Dashboard' : isTheaterManager ? 'Manager Dashboard' : 'Home'}
                           </Link>
                           <Link
                             to="/profile"
@@ -279,57 +293,27 @@ export default function Navbar() {
                             Your Profile
                           </Link>
 
-                          {/* Conditional Links: Hide for Admin */}
-                          {!isAdmin && (
-                            <>
-                              <Link
-                                to="/profile?tab=bookings"
-                                className="flex items-center px-3 py-2 text-sm rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors duration-150 group"
+                          {/* Conditional Links: Hide for Admin and Theater Manager */}
+                          {!isAdmin && !isTheaterManager && (
+                            <Link
+                              to="/profile?tab=bookings"
+                              className="flex items-center px-3 py-2 text-sm rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors duration-150 group"
+                            >
+                              <svg
+                                className="mr-3 h-5 w-5 text-white/60 group-hover:text-brand transition-colors duration-200"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                               >
-                                <svg
-                                  className="mr-3 h-5 w-5 text-white/60 group-hover:text-brand transition-colors duration-200"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                                  />
-                                </svg>
-                                My Bookings
-                              </Link>
-                              
-                              {user.role === 'theaterManager' && (
-                                <Link
-                                  to="/manager"
-                                  className="flex items-center px-3 py-2 text-sm rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors duration-150 group"
-                                >
-                                  <svg
-                                    className="mr-3 h-5 w-5 text-white/60 group-hover:text-brand transition-colors duration-200"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                  </svg>
-                                  Manager Dashboard
-                                </Link>
-                              )}
-                            </>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                />
+                              </svg>
+                              My Bookings
+                            </Link>
                           )}
                         </div>
                         <div className="px-1.5 py-1 border-t border-white/5">

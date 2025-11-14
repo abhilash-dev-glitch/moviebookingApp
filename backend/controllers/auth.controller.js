@@ -118,10 +118,24 @@ exports.updateDetails = async (req, res, next) => {
       phone: req.body.phone,
     };
 
+    // Get old user data for comparison
+    const oldUser = await User.findById(req.user.id);
+
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,
       runValidators: true,
     });
+
+    // Send profile update notification
+    const { sendProfileUpdateNotification } = require('../services/notification.service');
+    const updatedFields = {};
+    if (oldUser.name !== user.name) updatedFields.name = true;
+    if (oldUser.email !== user.email) updatedFields.email = true;
+    if (oldUser.phone !== user.phone) updatedFields.phone = true;
+    
+    if (Object.keys(updatedFields).length > 0) {
+      await sendProfileUpdateNotification(user, updatedFields);
+    }
 
     res.status(200).json({
       status: 'success',

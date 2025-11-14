@@ -83,10 +83,10 @@ export default function AdminUsers() {
     }
     if (users.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-300">
           <FiUsers className="text-5xl mb-3" />
-          <h3 className="text-xl font-semibold text-gray-300">No Users Found</h3>
-          <p className="mt-1">No end-users have registered yet.</p>
+          <h3 className="text-xl font-semibold text-white">No Users Found</h3>
+          <p className="mt-1 text-gray-300">No end-users have registered yet.</p>
         </div>
       );
     }
@@ -97,10 +97,10 @@ export default function AdminUsers() {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-800">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Joined On</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">User</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Contact</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Joined On</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Status</th>
                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -114,7 +114,7 @@ export default function AdminUsers() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-white">{user.name}</div>
-                        <div className="text-sm text-gray-400">{user.email}</div>
+                        <div className="text-sm text-gray-300">{user.email}</div>
                       </div>
                     </div>
                   </td>
@@ -146,9 +146,9 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="text-white">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">User Management</h1>
+        <h1 className="text-3xl font-bold text-red-900">User Management</h1>
       </div>
       {renderContent()}
     </div>

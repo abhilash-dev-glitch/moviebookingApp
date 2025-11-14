@@ -47,10 +47,10 @@ const CheckoutPage = () => {
       if (!createdBookingId) {
         const booking = await BookingAPI.create({
           showtime: showtime._id,
-          seats: seats.map(s => s._id || s),
+          seats: seats.map(s => ({ row: s.row, seat: s.seat, price: s.price })),
           paymentMethod: 'card',
           paymentStatus: 'paid',
-          amount: paymentResult.amount / 100 // Convert back to dollars
+          amount: paymentResult.amount / 100
         });
         createdBookingId = booking._id;
       }
@@ -93,7 +93,7 @@ const CheckoutPage = () => {
     );
   }
 
-  const totalAmount = seats.length * (showtime.price || 0);
+  const totalAmount = seats.reduce((sum, s) => sum + s.price, 0);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
@@ -114,7 +114,7 @@ const CheckoutPage = () => {
               <div className="flex justify-between">
                 <span className="text-gray-400">Date & Time</span>
                 <span className="font-medium">
-                  {new Date(showtime.startTime).toLocaleString()}
+                  {new Date(showtime.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                 </span>
               </div>
               
@@ -126,7 +126,7 @@ const CheckoutPage = () => {
               <div className="flex justify-between">
                 <span className="text-gray-400">Seats</span>
                 <span className="font-medium">
-                  {seats.map(s => s.seatNumber || s).join(', ')}
+                  {seats.map(s => `${s.row}${s.seat}`).join(', ')}
                 </span>
               </div>
               
@@ -134,7 +134,7 @@ const CheckoutPage = () => {
               
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>${totalAmount.toFixed(2)}</span>
+                <span>₹{totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>

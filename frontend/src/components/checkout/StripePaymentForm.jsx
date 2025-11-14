@@ -62,7 +62,7 @@ export const StripePaymentForm = ({ amount, onSuccess, onError }) => {
           processing ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
-        {processing ? 'Processing...' : `Pay $${(amount / 100).toFixed(2)}`}
+        {processing ? 'Processing...' : `Pay ₹${(amount / 100).toFixed(2)}`}
       </button>
     </form>
   );

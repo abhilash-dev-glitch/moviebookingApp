@@ -12,9 +12,12 @@
     "dev": "nodemon server.js",
     "worker": "node workers/notification.worker.js",
     "worker:dev": "nodemon workers/notification.worker.js",
+    "cleanup": "node workers/cleanup.worker.js",
+    "cleanup:dev": "nodemon workers/cleanup.worker.js",
     "seed:import": "node seeder.js -i",
     "seed:delete": "node seeder.js -d",
     "test:mailer": "node test-mailer.js",
+    "test:cancellation": "node test-cancellation-email.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

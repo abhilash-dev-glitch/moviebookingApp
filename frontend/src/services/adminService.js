@@ -161,6 +161,16 @@ export const adminService = {
       throw error;
     }
   },
+
+  getTheaterManagers: async () => {
+    try {
+      const response = await api.get('/users/theater-managers');
+      return response.data; // Assumes API returns { status, results, data: { theaterManagers } }
+    } catch (error) {
+      console.error('Error fetching theater managers:', error);
+      throw error;
+    }
+  },
   
   createManager: async (managerData) => {
     try {
@@ -216,12 +226,7 @@ export const adminService = {
   // --- BOOKINGS ---
   getBookings: async (params = {}) => {
     try {
-      const response = await api.get('/bookings', { 
-        params: {
-          ...params,
-          populate: 'user,showtime.movie,showtime.theater'
-        }
-      });
+      const response = await api.get('/bookings', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching bookings:', error);

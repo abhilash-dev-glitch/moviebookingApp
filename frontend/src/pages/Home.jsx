@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { MoviesAPI } from '../lib/api';
 import MovieCard from '../components/MovieCard';
 import { toast } from '../lib/toast';
@@ -64,12 +66,24 @@ const EventCard = ({ event, type = 'event' }) => {
 const selectMoviesState = (state) => state.movies;
 
 export default function Home() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [view, setView] = useState('all'); // 'all' | 'new' | 'upcoming'
   const carouselRef = useRef(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Redirect theater managers to their dashboard
+  useEffect(() => {
+    if (user?.role === 'theaterManager') {
+      navigate('/manager', { replace: true });
+    } else if (user?.role === 'admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
 
   const scrollCarousel = (direction) => {
     if (carouselRef.current) {
@@ -130,6 +144,37 @@ export default function Home() {
       setIsMounted(false);
     };
   }, []);
+
+  // Handle hash navigation for smooth scrolling
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const handleHashScroll = () => {
+      const hash = location.hash || window.location.hash;
+      if (hash) {
+        const element = document.querySelector(hash);
+        if (element) {
+          // Use a longer timeout when navigating from another page
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 300);
+        }
+      }
+    };
+
+    // Handle hash on mount or when location changes
+    handleHashScroll();
+
+    // Also listen to hash changes in the URL
+    const handleHashChange = () => {
+      handleHashScroll();
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [location.hash, location.pathname, isMounted]);
 
   // Fetch movies when view changes or component mounts
   useEffect(() => {
@@ -278,7 +323,7 @@ export default function Home() {
       </section>
 
       {/* Animated Events Carousel */}
-      <section className="py-16 bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
+      <section id="events" className="py-16 bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <span className="inline-block px-4 py-1 text-sm font-medium bg-brand/20 text-brand rounded-full mb-3">UPCOMING EVENTS</span>

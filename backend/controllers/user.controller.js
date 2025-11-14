@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Theater = require('../models/Theater');
 const AppError = require('../utils/appError');
@@ -159,6 +160,11 @@ exports.assignTheaters = async (req, res, next) => {
   try {
     const { theaterIds } = req.body;
 
+    // Validate theaterIds is an array
+    if (!Array.isArray(theaterIds)) {
+      return next(new AppError('theaterIds must be an array', 400));
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -169,13 +175,45 @@ exports.assignTheaters = async (req, res, next) => {
       return next(new AppError('User must be a theater manager', 400));
     }
 
+    // Handle empty array - just clear all theaters
+    if (theaterIds.length === 0) {
+      user.managedTheaters = [];
+      await user.save();
+
+      const updatedUser = await User.findById(user._id)
+        .populate('managedTheaters', 'name city')
+        .select('-password');
+
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          user: updatedUser,
+        },
+      });
+    }
+
+    // Convert all IDs to strings and filter out any invalid ones
+    const validTheaterIds = theaterIds
+      .map(id => {
+        // Handle both string and object IDs
+        if (typeof id === 'string') return id;
+        if (id && typeof id === 'object' && id._id) return id._id.toString();
+        if (id && typeof id === 'object' && id.toString) return id.toString();
+        return null;
+      })
+      .filter(id => id !== null && mongoose.Types.ObjectId.isValid(id));
+
+    if (validTheaterIds.length === 0 && theaterIds.length > 0) {
+      return next(new AppError('No valid theater IDs provided', 400));
+    }
+
     // Verify theaters exist
-    const theaters = await Theater.find({ _id: { $in: theaterIds } });
-    if (theaters.length !== theaterIds.length) {
+    const theaters = await Theater.find({ _id: { $in: validTheaterIds } });
+    if (theaters.length !== validTheaterIds.length) {
       return next(new AppError('One or more theaters not found', 404));
     }
 
-    user.managedTheaters = theaterIds;
+    user.managedTheaters = validTheaterIds;
     await user.save();
 
     const updatedUser = await User.findById(user._id)

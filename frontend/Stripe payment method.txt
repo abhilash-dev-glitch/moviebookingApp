@@ -1,0 +1,2 @@
+Card Number,        Expiration,      CVC
+4242 4242 4242 4242,Any future date,Any 3 digits

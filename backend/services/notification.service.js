@@ -40,6 +40,8 @@ const queueNotification = async (type, data, options = {}) => {
     queue = QUEUES.PAYMENT_CONFIRMATION;
   } else if (type === NOTIFICATION_TYPES.BOOKING_REMINDER) {
     queue = QUEUES.BOOKING_REMINDER;
+  } else if (type === NOTIFICATION_TYPES.BOOKING_CANCELLATION) {
+    queue = QUEUES.EMAIL; // Use EMAIL queue for cancellations
   }
   
   // Publish to queue
@@ -106,6 +108,18 @@ const sendNotificationSync = async (type, data, options = {}) => {
         if (email) {
           results.email = await emailService.sendWelcomeEmail(data.user);
         }
+        if (sms) {
+          results.sms = await smsService.sendWelcomeSMS(data.user);
+        }
+        break;
+        
+      case 'PROFILE_UPDATE':
+        if (email) {
+          results.email = await emailService.sendProfileUpdateEmail(data.user, data.updatedFields);
+        }
+        if (sms) {
+          results.sms = await smsService.sendProfileUpdateSMS(data.user);
+        }
         break;
         
       case NOTIFICATION_TYPES.OTP:
@@ -170,13 +184,24 @@ const sendCancellationNotification = async (booking, user, options = {}) => {
 };
 
 /**
- * Send welcome email
+ * Send welcome notification
  */
 const sendWelcomeNotification = async (user) => {
   return await queueNotification(
     NOTIFICATION_TYPES.WELCOME,
     { user },
-    { email: true, sms: false }
+    { email: true, sms: true }
+  );
+};
+
+/**
+ * Send profile update notification
+ */
+const sendProfileUpdateNotification = async (user, updatedFields) => {
+  return await queueNotification(
+    'PROFILE_UPDATE',
+    { user, updatedFields },
+    { email: true, sms: true }
   );
 };
 
@@ -189,4 +214,5 @@ module.exports = {
   sendBookingReminder,
   sendCancellationNotification,
   sendWelcomeNotification,
+  sendProfileUpdateNotification,
 };

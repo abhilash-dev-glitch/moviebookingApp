@@ -74,6 +74,76 @@ exports.getMyBookings = async (req, res, next) => {
   }
 };
 
+// @desc    Get bookings for theater manager's theaters
+// @route   GET /api/v1/bookings/my-theaters-bookings
+// @access  Private/Theater Manager
+exports.getMyTheatersBookings = async (req, res, next) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+
+    if (!user || !user.managedTheaters || user.managedTheaters.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        results: 0,
+        data: {
+          bookings: [],
+          stats: {
+            totalBookings: 0,
+            totalRevenue: 0,
+            paidBookings: 0,
+            pendingBookings: 0,
+            cancelledBookings: 0,
+          },
+        },
+      });
+    }
+
+    // Get all showtimes for managed theaters
+    const showtimes = await Showtime.find({
+      theater: { $in: user.managedTheaters },
+    }).select('_id');
+
+    const showtimeIds = showtimes.map((st) => st._id);
+
+    // Get all bookings for these showtimes
+    const bookings = await Booking.find({
+      showtime: { $in: showtimeIds },
+    })
+      .populate('user', 'name email phone')
+      .populate({
+        path: 'showtime',
+        populate: {
+          path: 'movie theater',
+          select: 'title duration poster name location.city',
+        },
+      })
+      .sort('-bookingDate');
+
+    // Calculate stats
+    const stats = {
+      totalBookings: bookings.length,
+      totalRevenue: bookings
+        .filter((b) => b.paymentStatus === 'paid')
+        .reduce((sum, b) => sum + b.totalAmount, 0),
+      paidBookings: bookings.filter((b) => b.paymentStatus === 'paid').length,
+      pendingBookings: bookings.filter((b) => b.paymentStatus === 'pending').length,
+      cancelledBookings: bookings.filter((b) => b.paymentStatus === 'cancelled').length,
+    };
+
+    res.status(200).json({
+      status: 'success',
+      results: bookings.length,
+      data: {
+        bookings,
+        stats,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get single booking
 // @route   GET /api/v1/bookings/:id
 // @access  Private
@@ -119,7 +189,7 @@ exports.getBooking = async (req, res, next) => {
 // @access  Private
 exports.createBooking = async (req, res, next) => {
   try {
-    const { showtime, seats, paymentMethod } = req.body;
+    const { showtime, seats, paymentMethod, paymentStatus, amount } = req.body;
 
     // Check if showtime exists
     const showtimeDoc = await Showtime.findById(showtime).populate(
@@ -192,8 +262,8 @@ exports.createBooking = async (req, res, next) => {
       price: seat.price || showtimeDoc.price,
     }));
 
-    // Calculate total amount
-    const totalAmount = seatsWithPrice.reduce(
+    // Calculate total amount if not provided
+    const totalAmount = amount || seatsWithPrice.reduce(
       (sum, seat) => sum + seat.price,
       0
     );
@@ -205,12 +275,21 @@ exports.createBooking = async (req, res, next) => {
       seats: seatsWithPrice,
       totalAmount,
       paymentMethod,
-      paymentStatus: 'pending',
+      paymentStatus: paymentStatus || 'pending',
     });
 
     // Update available seats
     showtimeDoc.availableSeats -= seats.length;
     await showtimeDoc.save();
+
+    // Release Redis locks when payment is completed
+    if (booking.paymentStatus === 'paid') {
+      await releaseSeats(
+        booking.showtime.toString(),
+        booking.seats,
+        booking.user.toString()
+      );
+    }
 
     // Populate booking details
     const populatedBooking = await Booking.findById(booking._id)
@@ -224,16 +303,13 @@ exports.createBooking = async (req, res, next) => {
       });
 
     // Send booking confirmation notification (async via queue)
-    await sendBookingConfirmation(populatedBooking, req.user, { sms: false });
+    await sendBookingConfirmation(populatedBooking, req.user, { sms: true });
 
-    // Broadcast WebSocket event for new booking (only if it's paid, or for admin)
-    // We'll broadcast on 'paid' status update instead.
-    // For now, let's broadcast on creation for realtime admin view
+    // Broadcast WebSocket event
     broadcast({
-      type: 'NEW_BOOKING',
+      type: booking.paymentStatus === 'paid' ? 'BOOKING_PAID' : 'NEW_BOOKING',
       data: populatedBooking,
     });
-
 
     res.status(201).json({
       status: 'success',
@@ -370,6 +446,7 @@ exports.cancelBooking = async (req, res, next) => {
     // Update booking status
     const oldStatus = booking.paymentStatus;
     booking.paymentStatus = 'cancelled';
+    booking.cancelledAt = new Date();
     await booking.save();
 
     // Release Redis locks
@@ -394,7 +471,7 @@ exports.cancelBooking = async (req, res, next) => {
       });
 
     // Send cancellation notification (async via queue)
-    await sendCancellationNotification(populatedBooking, req.user, { sms: false });
+    await sendCancellationNotification(populatedBooking, req.user, { sms: true });
 
     // Broadcast cancellation
     if (oldStatus === 'paid') {
@@ -522,6 +599,57 @@ exports.checkSeatsAvailability = async (req, res, next) => {
           return !bookedSeats.includes(seatKey);
         }),
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Lock a single seat
+// @route   POST /api/v1/bookings/lock-seat
+// @access  Private
+exports.lockSeat = async (req, res, next) => {
+  try {
+    const { showtimeId, row, seat } = req.body;
+    const userId = req.user.id;
+
+    if (!showtimeId || !row || !seat) {
+      return next(new AppError('Missing showtime, row, or seat information.', 400));
+    }
+
+    const lockResult = await lockSeats(showtimeId, [{ row, seat }], userId);
+
+    if (!lockResult.success) {
+      return next(new AppError('Seat is already locked or booked.', 409));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Seat locked successfully.',
+      data: lockResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Unlock a single seat
+// @route   POST /api/v1/bookings/unlock-seat
+// @access  Private
+exports.unlockSeat = async (req, res, next) => {
+  try {
+    const { showtimeId, row, seat } = req.body;
+    const userId = req.user.id;
+
+    if (!showtimeId || !row || !seat) {
+      return next(new AppError('Missing showtime, row, or seat information.', 400));
+    }
+
+    await releaseSeats(showtimeId, [{ row, seat }], userId);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Seat unlocked successfully.',
     });
   } catch (error) {
     next(error);

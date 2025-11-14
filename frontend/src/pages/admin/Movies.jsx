@@ -270,9 +270,9 @@ export default function AdminMovies() {
 
     if (movies.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-300">
           <FiFilm className="text-5xl mb-3" />
-          <h3 className="text-xl font-semibold text-gray-300">No Movies Found</h3>
+          <h3 className="text-xl font-semibold text-white">No Movies Found</h3>
           <p className="mt-1">Get started by adding a new movie.</p>
           <p className="text-sm mt-1">(If you just started, try running the backend seeder: `npm run seed:import`)</p>
         </div>
@@ -287,25 +287,25 @@ export default function AdminMovies() {
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Movie
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Stats
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Insights
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Status
                 </th>
@@ -333,14 +333,14 @@ export default function AdminMovies() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-white">{movie.title}</div>
-                          <div className="text-sm text-gray-400">{movie.director}</div>
-                          <div className="text-xs text-gray-500 mt-1">{movie.language}</div>
+                          <div className="text-sm text-gray-300">{movie.director}</div>
+                          <div className="text-xs text-gray-300 mt-1">{movie.language}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowGrap">
                        <div className="flex items-center text-sm text-gray-300 mb-1" title="Duration">
-                        <FiClock className="w-4 h-4 mr-2 text-gray-500" />
+                        <FiClock className="w-4 h-4 mr-2 text-gray-400" />
                         {movie.duration} mins
                       </div>
                       <div className="flex items-center text-sm text-gray-300" title="Rating">
@@ -404,10 +404,10 @@ export default function AdminMovies() {
   };
 
   return (
-    <div className="text-white">
+    <div>
       {/* Page Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Movie Management</h1>
+        <h1 className="text-3xl font-bold text-red-900">Movie Management</h1>
         <button
           onClick={() => handleOpenModal()}
           className="flex items-center px-4 py-2.5 bg-brand hover:bg-brand-dark text-white font-medium rounded-lg shadow-lg hover:shadow-brand/30 transition-all duration-200"
@@ -467,7 +467,7 @@ export default function AdminMovies() {
                   <input type="file" className="hidden" accept="image/*" onChange={handlePosterUpload} disabled={isUploading} />
                 </label>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Uploading a new poster will replace the old one and save immediately.</p>
+              <p className="text-xs text-gray-300 mt-2">Uploading a new poster will replace the old one and save immediately.</p>
             </div>
           )}
           
@@ -486,7 +486,7 @@ export default function AdminMovies() {
                   Upload Poster
                 </button>
                </div>
-              <p className="text-xs text-gray-500 mt-2">You must "Create Movie" first before you can upload a poster.</p>
+              <p className="text-xs text-gray-300 mt-2">You must "Create Movie" first before you can upload a poster.</p>
             </div>
           )}
 

@@ -293,9 +293,9 @@ export default function AdminTheaters() {
 
     if (theaters.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 border-2 border-dashed border-gray-700 rounded-lg text-gray-300">
           <FiHome className="text-5xl mb-3" />
-          <h3 className="text-xl font-semibold text-gray-300">No Theaters Found</h3>
+          <h3 className="text-xl font-semibold text-white">No Theaters Found</h3>
           <p className="mt-1">Get started by adding a new theater.</p>
           <p className="text-sm mt-1">(If you just started, try running the backend seeder: `npm run seed:import`)</p>
         </div>
@@ -310,25 +310,25 @@ export default function AdminTheaters() {
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Theater
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Insights
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Running Movies
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider"
                 >
                   Status
                 </th>
@@ -347,14 +347,14 @@ export default function AdminTheaters() {
                   <tr key={theater._id} className="hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-white">{theater.name}</div>
-                      <div className="text-sm text-gray-400 flex items-center mt-1">
-                        <FiMapPin className="w-4 h-4 mr-1.5 text-gray-500" />
+                      <div className="text-sm text-gray-300 flex items-center mt-1">
+                        <FiMapPin className="w-4 h-4 mr-1.5 text-gray-400" />
                         {theater.city}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-300 mb-1" title="Screens">
-                        <FiGrid className="w-4 h-4 mr-2 text-gray-500" />
+                        <FiGrid className="w-4 h-4 mr-2 text-gray-400" />
                         {theater.screens?.length || 0} Screen{theater.screens?.length !== 1 ? 's' : ''}
                       </div>
                       <div className="flex items-center text-sm text-gray-300 mb-1" title="Active Shows">
@@ -376,7 +376,7 @@ export default function AdminTheaters() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500">No active shows</span>
+                        <span className="text-sm text-gray-300">No active shows</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -417,10 +417,10 @@ export default function AdminTheaters() {
   };
 
   return (
-    <div className="text-white">
+    <div>
       {/* Page Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Theater Management</h1>
+        <h1 className="text-3xl font-bold text-red-900">Theater Management</h1>
         <button
           onClick={() => handleOpenModal()}
           className="flex items-center px-4 py-2.5 bg-brand hover:bg-brand-dark text-white font-medium rounded-lg shadow-lg hover:shadow-brand/30 transition-all duration-200"
@@ -476,7 +476,7 @@ export default function AdminTheaters() {
                       <FiMinusCircle size={20} />
                     </button>
                   </div>
-                  <div className="col-span-3 text-xs text-gray-500">
+                  <div className="col-span-3 text-xs text-gray-300">
                     Seat Layout: {(screen.seatLayout || []).length} rows x {(screen.seatLayout || [])[0]?.length || 0} cols
                   </div>
                 </div>
