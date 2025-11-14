@@ -54,10 +54,15 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     }
+    // Log rejected origins for debugging
+    console.log('[CORS] Rejected origin:', origin);
+    console.log('[CORS] Allowed origins:', allowedOrigins);
     // Reject other origins -- browser will block request
     return callback(new Error('CORS policy: Origin not allowed'), false);
   },
   credentials: true, // Allow cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
