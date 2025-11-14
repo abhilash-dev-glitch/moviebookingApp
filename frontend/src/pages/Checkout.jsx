@@ -42,24 +42,35 @@ const CheckoutPage = () => {
 
   const handlePaymentSuccess = async (paymentResult) => {
     try {
+      console.log('Payment successful, creating booking...', paymentResult);
       let createdBookingId = bookingId;
       
       if (!createdBookingId) {
-        const booking = await BookingAPI.create({
+        const bookingData = {
           showtime: showtime._id,
           seats: seats.map(s => ({ row: s.row, seat: s.seat, price: s.price })),
           paymentMethod: 'card',
           paymentStatus: 'paid',
           amount: paymentResult.amount / 100
-        });
+        };
+        console.log('Creating booking with data:', bookingData);
+        
+        const booking = await BookingAPI.create(bookingData);
+        console.log('Booking created:', booking);
         createdBookingId = booking._id;
       }
 
+      if (!createdBookingId) {
+        throw new Error('Booking ID not returned from server');
+      }
+
+      console.log('Redirecting to booking:', createdBookingId);
       toast.success('Success', 'Payment successful!');
       navigate(`/bookings/${createdBookingId}`);
     } catch (error) {
       console.error('Error processing booking:', error);
-      toast.error('Error', 'Failed to process booking');
+      console.error('Error details:', error.response?.data || error.message);
+      toast.error('Error', error.response?.data?.message || 'Failed to process booking. Please contact support.');
     }
   };
 
