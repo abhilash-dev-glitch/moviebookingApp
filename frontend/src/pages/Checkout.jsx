@@ -59,7 +59,7 @@ const CheckoutPage = () => {
           const booking = await Promise.race([
             BookingAPI.create(bookingData),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Request timeout')), 10000)
+              setTimeout(() => reject(new Error('Request timeout')), 30000)
             )
           ]);
           console.log('Booking created:', booking);
