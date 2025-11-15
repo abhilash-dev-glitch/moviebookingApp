@@ -255,7 +255,10 @@ export default function AdminShows() {
   // --- Helper Functions ---
   
   const isShowExpired = (show) => {
-    if (!show.endDate) return false;
+    if (!show.endDate) {
+      console.log('⚠️ Show has no endDate:', show.movie?.title, show);
+      return false;
+    }
     
     // Get current date and time
     const now = new Date();
@@ -264,11 +267,20 @@ export default function AdminShows() {
     const endDate = new Date(show.endDate);
     const endOfDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
     
+    const isExpired = endOfDay < now;
+    
     // Debug logging
-    console.log('Show:', show.movie?.title, 'End Date:', show.endDate, 'End of Day:', endOfDay, 'Now:', now, 'Is Expired:', endOfDay < now);
+    console.log(
+      isExpired ? '🔴 EXPIRED:' : '🟢 ACTIVE:',
+      show.movie?.title,
+      '| End Date:', show.endDate,
+      '| End of Day:', endOfDay.toLocaleString(),
+      '| Now:', now.toLocaleString(),
+      '| Expired:', isExpired
+    );
     
     // Show is expired if the end of the end date has passed
-    return endOfDay < now;
+    return isExpired;
   };
   
   // --- Render Functions ---
@@ -308,9 +320,14 @@ export default function AdminShows() {
     }
     
     // Separate shows into active and expired
+    console.log('📊 Total shows:', showtimes.length);
     const activeShows = showtimes.filter(show => !isShowExpired(show) && show.isActive);
     const inactiveShows = showtimes.filter(show => !isShowExpired(show) && !show.isActive);
     const expiredShows = showtimes.filter(show => isShowExpired(show));
+    
+    console.log('✅ Active shows:', activeShows.length);
+    console.log('⚪ Inactive shows:', inactiveShows.length);
+    console.log('🔴 Expired shows:', expiredShows.length);
 
     return (
       <div className="space-y-8">
