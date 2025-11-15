@@ -150,6 +150,14 @@ export default function AdminShows() {
   const handleOpenModal = (show = null) => {
     if (show) {
       const startTime = new Date(show.startTime);
+      const hours24 = startTime.getHours();
+      const minutes = startTime.getMinutes();
+      
+      // Convert 24-hour to 12-hour format
+      let hours12 = hours24 % 12;
+      if (hours12 === 0) hours12 = 12;
+      const period = hours24 >= 12 ? 'PM' : 'AM';
+      
       setCurrentShow({
         ...show,
         movie: show.movie?._id,
@@ -157,11 +165,17 @@ export default function AdminShows() {
         date: startTime.toISOString().split('T')[0],
         endDate: show.endDate ? new Date(show.endDate).toISOString().split('T')[0] : startTime.toISOString().split('T')[0],
         startTime: startTime.toTimeString().slice(0, 5),
+        startHour: hours12.toString(),
+        startMinute: minutes.toString().padStart(2, '0'),
+        startPeriod: period,
       });
     } else {
       setCurrentShow({
         price: 150, // Default price
         isActive: true,
+        startHour: '12',
+        startMinute: '00',
+        startPeriod: 'PM',
       });
     }
     setIsModalOpen(true);
@@ -290,7 +304,7 @@ export default function AdminShows() {
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Movie</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Theater & Screen</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Time & Date</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">End Date & Show Times</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Seats</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Price</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Status</th>
@@ -313,10 +327,14 @@ export default function AdminShows() {
                     <div className="text-sm text-white">{show.theater?.name}</div>
                     <div className="text-sm text-gray-300">{show.screen}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-white">{new Date(show.startTime).toLocaleDateString()}</div>
-                    <div className="text-sm text-gray-300">
-                      {new Date(show.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(show.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-white mb-1">
+                      End: {show.endDate ? new Date(show.endDate).toLocaleDateString() : new Date(show.startTime).toLocaleDateString()}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="px-2 py-0.5 bg-indigo-900/50 text-indigo-300 text-xs rounded border border-indigo-700">
+                        {new Date(show.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </span>
                     </div>
                   </td>
                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
@@ -326,9 +344,21 @@ export default function AdminShows() {
                     ₹{show.price}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${show.isActive ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-gray-900/50 text-gray-300 border border-gray-700'}`}>
-                      {show.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    {(() => {
+                      const isExpired = show.endDate && new Date(show.endDate) < new Date();
+                      const isActive = show.isActive && !isExpired;
+                      return (
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          isExpired 
+                            ? 'bg-red-900/50 text-red-300 border border-red-700' 
+                            : isActive 
+                            ? 'bg-green-900/50 text-green-300 border border-green-700' 
+                            : 'bg-gray-900/50 text-gray-300 border border-gray-700'
+                        }`}>
+                          {isExpired ? 'Expired' : isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                     <button onClick={() => handleOpenModal(show)} className="text-indigo-400 hover:text-indigo-300 transition-colors p-1" title="Edit Show">
@@ -393,8 +423,79 @@ export default function AdminShows() {
             <FormInput label="End Date (Last day of show)" name="endDate" type="date" value={currentShow?.endDate} onChange={handleFormChange} required />
           </div>
           
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Start Time (Hour)</label>
+              <select
+                name="startHour"
+                value={currentShow?.startHour || '12'}
+                onChange={(e) => {
+                  const hour = e.target.value;
+                  const minute = currentShow?.startMinute || '00';
+                  const period = currentShow?.startPeriod || 'PM';
+                  let hour24 = parseInt(hour);
+                  if (period === 'PM' && hour24 !== 12) hour24 += 12;
+                  if (period === 'AM' && hour24 === 12) hour24 = 0;
+                  const timeString = `${hour24.toString().padStart(2, '0')}:${minute}`;
+                  setCurrentShow(prev => ({ ...prev, startHour: hour, startTime: timeString }));
+                }}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand/50"
+                required
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Minute</label>
+              <select
+                name="startMinute"
+                value={currentShow?.startMinute || '00'}
+                onChange={(e) => {
+                  const minute = e.target.value;
+                  const hour = currentShow?.startHour || '12';
+                  const period = currentShow?.startPeriod || 'PM';
+                  let hour24 = parseInt(hour);
+                  if (period === 'PM' && hour24 !== 12) hour24 += 12;
+                  if (period === 'AM' && hour24 === 12) hour24 = 0;
+                  const timeString = `${hour24.toString().padStart(2, '0')}:${minute}`;
+                  setCurrentShow(prev => ({ ...prev, startMinute: minute, startTime: timeString }));
+                }}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand/50"
+                required
+              >
+                <option value="00">00</option>
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="45">45</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">AM/PM</label>
+              <select
+                name="startPeriod"
+                value={currentShow?.startPeriod || 'PM'}
+                onChange={(e) => {
+                  const period = e.target.value;
+                  const hour = currentShow?.startHour || '12';
+                  const minute = currentShow?.startMinute || '00';
+                  let hour24 = parseInt(hour);
+                  if (period === 'PM' && hour24 !== 12) hour24 += 12;
+                  if (period === 'AM' && hour24 === 12) hour24 = 0;
+                  const timeString = `${hour24.toString().padStart(2, '0')}:${minute}`;
+                  setCurrentShow(prev => ({ ...prev, startPeriod: period, startTime: timeString }));
+                }}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand/50"
+                required
+              >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormInput label="Start Time" name="startTime" type="time" value={currentShow?.startTime} onChange={handleFormChange} required />
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">Show Duration</label>
               <div className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-400">
@@ -407,11 +508,17 @@ export default function AdminShows() {
                 )}
               </div>
             </div>
+            <FormInput label="End Time (auto-calculated)" name="endTime" type="time" value={currentShow?.endTime} onChange={handleFormChange} required />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-             <FormInput label="End Time (auto-calculated)" name="endTime" type="time" value={currentShow?.endTime} onChange={handleFormChange} required />
              <FormInput label="Price (INR)" name="price" type="number" value={currentShow?.price} onChange={handleFormChange} required />
+             <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">End Time (auto-calculated)</label>
+              <div className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-400">
+                {currentShow?.endTime || 'Will be calculated based on movie duration'}
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
