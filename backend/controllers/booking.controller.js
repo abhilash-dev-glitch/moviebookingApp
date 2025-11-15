@@ -299,7 +299,6 @@ exports.createBooking = async (req, res, next) => {
     showtimeDoc.availableSeats -= seats.length;
     await showtimeDoc.save();
 
-    // Send response immediately with basic booking data
     res.status(201).json({
       status: 'success',
       data: {
@@ -313,7 +312,7 @@ exports.createBooking = async (req, res, next) => {
           paymentStatus: booking.paymentStatus,
           bookingDate: booking.bookingDate,
         },
-        lockExpiresIn: lockResult.expiresIn,
+        lockExpiresIn: lockResult?.expiresIn || 600,
       },
     });
 
