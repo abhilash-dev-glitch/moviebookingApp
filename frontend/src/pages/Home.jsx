@@ -246,25 +246,162 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="relative h-[70vh] md:h-[80vh] bg-gradient-to-r from-gray-900 to-gray-800 overflow-hidden">
-        <div className="absolute inset-0 bg-black/60 z-10" />
-        <div className="absolute inset-0 flex items-center z-20">
+      <div className="relative h-[70vh] md:h-[80vh] overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-gray-900/95 to-red-900/90 z-10" />
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-blob" />
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-red-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000" />
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000" />
+          </div>
+          {/* Cinema Pattern Overlay */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }} />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-20 h-full flex items-center">
           <div className="container mx-auto px-4 md:px-6">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              Welcome to MovieFlix
-            </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl">
-              Discover the latest movies, book tickets, and enjoy an amazing cinematic experience.
-            </p>
-            <a 
-              href="#movies" 
-              className="inline-block bg-brand hover:bg-brand/90 text-white px-8 py-3 rounded-lg font-medium transition"
-            >
-              Explore Movies
-            </a>
+            <div className="max-w-3xl">
+              {/* Badge */}
+              <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full mb-6 animate-fade-in">
+                <svg className="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-white text-sm font-medium">Your Ultimate Movie Destination</span>
+              </div>
+
+              {/* Main Heading */}
+              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight animate-slide-up">
+                Experience Cinema
+                <span className="block bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                  Like Never Before
+                </span>
+              </h1>
+
+              {/* Description */}
+              <p className="text-xl md:text-2xl text-gray-200 mb-8 leading-relaxed animate-slide-up animation-delay-200">
+                Book your favorite movies, reserve the best seats, and create unforgettable memories with CineGo.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 animate-slide-up animation-delay-400">
+                <a 
+                  href="#movies" 
+                  className="group relative inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/50"
+                >
+                  <span className="relative z-10 flex items-center">
+                    Explore Movies
+                    <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </a>
+                
+                <a 
+                  href="#events" 
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-semibold rounded-xl hover:bg-white/20 hover:border-white/50 transition-all duration-300"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                  Browse Events
+                </a>
+              </div>
+
+              {/* Stats */}
+              <div className="mt-12 grid grid-cols-3 gap-6 animate-fade-in animation-delay-600">
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">500+</div>
+                  <div className="text-sm text-gray-300">Movies</div>
+                </div>
+                <div className="text-center border-x border-white/20">
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">50+</div>
+                  <div className="text-sm text-gray-300">Theaters</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">10K+</div>
+                  <div className="text-sm text-gray-300">Happy Users</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+          <a href="#movies" className="flex flex-col items-center text-white/60 hover:text-white transition-colors">
+            <span className="text-sm mb-2">Scroll to explore</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </a>
+        </div>
       </div>
+
+      {/* Add custom animations */}
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        
+        .animate-slide-up {
+          animation: slide-up 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 1s ease-out forwards;
+        }
+        
+        .animation-delay-200 {
+          animation-delay: 0.2s;
+          opacity: 0;
+        }
+        
+        .animation-delay-400 {
+          animation-delay: 0.4s;
+          opacity: 0;
+        }
+        
+        .animation-delay-600 {
+          animation-delay: 0.6s;
+          opacity: 0;
+        }
+      `}</style>
 
       {/* Movies Section */}
       <section id="movies" className="py-16 bg-background">
