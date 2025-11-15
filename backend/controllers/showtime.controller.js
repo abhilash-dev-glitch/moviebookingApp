@@ -215,16 +215,21 @@ exports.createShowtime = async (req, res, next) => {
       );
     }
 
+    // Get screen capacity or use provided availableSeats
+    const screenData = theaterExists.screens.find(
+      (s) => s.name === screen || s._id.toString() === screen
+    );
+    
     const newShowtime = await Showtime.create({
       movie,
       theater,
       screen,
       startTime,
       endTime,
+      endDate: req.body.endDate || endTime, // Use provided endDate or default to endTime
       price,
-      availableSeats: theaterExists.screens.find(
-        (s) => s.name === screen || s._id.toString() === screen
-      ).capacity,
+      availableSeats: req.body.availableSeats || screenData.capacity,
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
 
     res.status(201).json({

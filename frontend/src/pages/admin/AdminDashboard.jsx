@@ -128,7 +128,10 @@ export default function AdminDashboard() {
 
     // --- WebSocket Connection ---
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//localhost:3000`; // Connect to backend port
+    const backendHost = import.meta.env.VITE_API_BASE 
+      ? import.meta.env.VITE_API_BASE.replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '')
+      : 'localhost:3000';
+    const wsUrl = `${wsProtocol}//${backendHost}`;
     console.log(`Connecting to WebSocket at: ${wsUrl}`);
 
     ws.current = new WebSocket(wsUrl);
