@@ -9,14 +9,6 @@ import {
   FiAlertCircle,
   FiX,
   FiVideo,
-  FiDollarSign,
-  FiCalendar,
-  FiClock,
-  FiCheckCircle,
-  FiXCircle,
-  FiFilm,
-  FiHome,
-  FiGrid
 } from 'react-icons/fi';
 
 // Modal and FormInput components would be ideal to abstract
@@ -345,8 +337,18 @@ export default function AdminShows() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
-                      const isExpired = show.endDate && new Date(show.endDate) < new Date();
+                      // Compare dates without time component
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      const endDate = show.endDate ? new Date(show.endDate) : null;
+                      if (endDate) {
+                        endDate.setHours(0, 0, 0, 0);
+                      }
+                      
+                      const isExpired = endDate && endDate < today;
                       const isActive = show.isActive && !isExpired;
+                      
                       return (
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           isExpired 
