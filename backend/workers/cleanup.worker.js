@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { cleanupAllExpiredShows } = require('../utils/seatLockHelper');
+const { updateMovieStatuses } = require('../utils/updateMovieStatuses');
 
 // Load environment variables
 require('dotenv').config();
@@ -18,14 +19,27 @@ const connectDB = async () => {
 // Cleanup function
 const runCleanup = async () => {
   try {
-    console.log('🧹 Starting cleanup of expired show locks...');
-    const cleaned = await cleanupAllExpiredShows();
+    console.log('🧹 Starting cleanup tasks...');
     
+    // 1. Cleanup expired show locks
+    console.log('  → Cleaning up expired show locks...');
+    const cleaned = await cleanupAllExpiredShows();
     if (cleaned > 0) {
-      console.log(`✅ Cleanup completed: ${cleaned} locks released`);
+      console.log(`  ✅ Released ${cleaned} expired locks`);
     } else {
-      console.log('✅ Cleanup completed: No expired locks found');
+      console.log('  ✅ No expired locks found');
     }
+    
+    // 2. Update movie statuses based on showtimes
+    console.log('  → Updating movie statuses...');
+    const statusResult = await updateMovieStatuses();
+    if (statusResult.success) {
+      console.log('  ✅ Movie statuses updated');
+    } else {
+      console.log('  ⚠️ Movie status update had issues:', statusResult.error);
+    }
+    
+    console.log('✅ All cleanup tasks completed');
   } catch (error) {
     console.error('❌ Cleanup error:', error);
   }

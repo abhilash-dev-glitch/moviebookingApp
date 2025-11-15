@@ -9,6 +9,10 @@ const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../config/cl
 // @access  Public
 exports.getAllMovies = async (req, res, next) => {
   try {
+    // Auto-update movie statuses based on showtimes (run periodically)
+    const { updateMovieStatuses } = require('../utils/updateMovieStatuses');
+    await updateMovieStatuses();
+    
     // --- UPDATED LOGIC ---
     const filter = {}; // This will be our base filter for MongoDB
 
