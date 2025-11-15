@@ -319,20 +319,34 @@ export default function AdminMovies() {
                 // Calculate insights from populated data
                 const theaters = [...new Set((movie.showtimes || []).map(s => s.theater?.name).filter(Boolean))];
                 const totalBookings = (movie.showtimes || []).reduce((acc, show) => acc + (show.bookingCount || 0), 0);
+                const upcomingShows = (movie.showtimes || []).filter(show => new Date(show.startTime) > new Date());
+                const isExpired = movie.showtimes && movie.showtimes.length > 0 && upcomingShows.length === 0;
                 
                 return (
-                  <tr key={movie._id} className="hover:bg-gray-700/50 transition-colors">
+                  <tr key={movie._id} className={`hover:bg-gray-700/50 transition-colors ${isExpired ? 'opacity-60' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-24 w-16">
+                        <div className="flex-shrink-0 h-24 w-16 relative">
                           <img
                             className="h-24 w-16 rounded-md object-cover border border-gray-700"
                             src={movie.poster || 'https://placehold.co/128x176/1f2937/9ca3af?text=No+Poster'}
                             alt={movie.title}
                           />
+                          {isExpired && (
+                            <div className="absolute top-1 left-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                              EXPIRED
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-white">{movie.title}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium text-white">{movie.title}</div>
+                            {isExpired && (
+                              <span className="px-2 py-0.5 bg-red-600/20 text-red-400 text-[10px] font-semibold rounded-full">
+                                No upcoming shows
+                              </span>
+                            )}
+                          </div>
                           <div className="text-sm text-gray-300">{movie.director}</div>
                           <div className="text-xs text-gray-300 mt-1">{movie.language}</div>
                         </div>
@@ -349,10 +363,15 @@ export default function AdminMovies() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-300 mb-1" title="Active Shows">
+                      <div className="flex items-center text-sm text-gray-300 mb-1" title="Total Shows">
                         <FiVideo className="w-4 h-4 mr-2 text-blue-400" />
-                        {(movie.showtimes || []).length} Active Show
-                        {(movie.showtimes || []).length !== 1 ? 's' : ''}
+                        {(movie.showtimes || []).length} Show{(movie.showtimes || []).length !== 1 ? 's' : ''}
+                        {upcomingShows.length > 0 && (
+                          <span className="ml-2 text-green-400">({upcomingShows.length} upcoming)</span>
+                        )}
+                        {isExpired && (
+                          <span className="ml-2 text-red-400">(all expired)</span>
+                        )}
                       </div>
                       <div className="flex items-center text-sm text-gray-300 mb-1" title="Total Bookings on Active Shows">
                         <FiTrendingUp className="w-4 h-4 mr-2 text-green-500" />
