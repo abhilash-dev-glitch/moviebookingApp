@@ -140,36 +140,59 @@ export default function ManageShows() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.movie || !form.screen || !form.startTime || !form.endTime || !form.endDate) {
+    
+    // Validate required fields
+    if (!form.movie || !form.screen || !form.startDate || !form.startHour || !form.startMinute || !form.startPeriod || !form.endDate) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const startTime = new Date(form.startTime);
-    const endTime = new Date(form.endTime);
-    const endDate = new Date(form.endDate);
-    const startDate = new Date(form.startTime.split('T')[0]);
-    
-    if (endTime <= startTime) {
-      toast.error('End time must be after start time');
-      return;
-    }
-    
-    if (endDate < startDate) {
-      toast.error('End date cannot be before start date');
+    if (!selectedTheaterId) {
+      toast.error('Please select a theater first');
       return;
     }
 
     setIsLoading(true);
     try {
+      // Calculate start time from 12-hour format
+      let hour24 = parseInt(form.startHour);
+      if (form.startPeriod === 'PM' && hour24 !== 12) hour24 += 12;
+      if (form.startPeriod === 'AM' && hour24 === 12) hour24 = 0;
+      
+      const startDateTime = new Date(`${form.startDate}T${hour24.toString().padStart(2, '0')}:${form.startMinute}:00`);
+      
+      // Get movie duration for end time calculation
+      const selectedMovie = movies.find(m => m._id === form.movie);
+      if (!selectedMovie || !selectedMovie.duration) {
+        toast.error('Movie duration not found');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Calculate end time based on movie duration
+      const endDateTime = new Date(startDateTime.getTime() + selectedMovie.duration * 60000);
+      
+      // Validate dates
+      const endDate = new Date(form.endDate);
+      const startDate = new Date(form.startDate);
+      
+      if (endDate < startDate) {
+        toast.error('End date cannot be before start date');
+        setIsLoading(false);
+        return;
+      }
+
       const payload = {
-        ...form,
+        movie: form.movie,
         theater: selectedTheaterId,
-        price: Number(form.price || 0),
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        endDate: endDate.toISOString(),
+        screen: form.screen,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        endDate: form.endDate,
+        price: Number(form.price || 0)
       };
+      
+      console.log('Submitting show data:', payload);
       
       if (editingShow) {
         await api.patch(`/showtimes/${editingShow._id}`, payload);
