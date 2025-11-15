@@ -252,6 +252,20 @@ export default function AdminShows() {
     }
   };
   
+  // --- Helper Functions ---
+  
+  const isShowExpired = (show) => {
+    if (!show.endDate) return false;
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const ed = new Date(show.endDate);
+    const endDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate());
+    
+    return endDate < today;
+  };
+  
   // --- Render Functions ---
   
   const renderContent = () => {
@@ -287,7 +301,51 @@ export default function AdminShows() {
         </div>
       );
     }
+    
+    // Separate shows into active and expired
+    const activeShows = showtimes.filter(show => !isShowExpired(show) && show.isActive);
+    const inactiveShows = showtimes.filter(show => !isShowExpired(show) && !show.isActive);
+    const expiredShows = showtimes.filter(show => isShowExpired(show));
 
+    return (
+      <div className="space-y-8">
+        {/* Active Shows Section */}
+        {activeShows.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              <h2 className="text-xl font-semibold text-white">Active Shows ({activeShows.length})</h2>
+            </div>
+            {renderShowTable(activeShows, 'active')}
+          </div>
+        )}
+        
+        {/* Inactive Shows Section */}
+        {inactiveShows.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-2 w-2 rounded-full bg-gray-500"></div>
+              <h2 className="text-xl font-semibold text-white">Inactive Shows ({inactiveShows.length})</h2>
+            </div>
+            {renderShowTable(inactiveShows, 'inactive')}
+          </div>
+        )}
+        
+        {/* Expired Shows Section */}
+        {expiredShows.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-2 w-2 rounded-full bg-red-500"></div>
+              <h2 className="text-xl font-semibold text-white">Expired Shows ({expiredShows.length})</h2>
+            </div>
+            {renderShowTable(expiredShows, 'expired')}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  const renderShowTable = (shows, type) => {
     return (
       <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -304,7 +362,7 @@ export default function AdminShows() {
               </tr>
             </thead>
             <tbody className="bg-gray-800/50 divide-y divide-gray-700">
-              {showtimes.map((show) => (
+              {shows.map((show) => (
                 <tr key={show._id} className="hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -336,34 +394,15 @@ export default function AdminShows() {
                     ₹{show.price}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {(() => {
-                      // Get current date without time
-                      const now = new Date();
-                      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                      
-                      // Get end date without time
-                      let endDate = null;
-                      if (show.endDate) {
-                        const ed = new Date(show.endDate);
-                        endDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate());
-                      }
-                      
-                      // Show is expired if end date is before today
-                      const isExpired = endDate && endDate < today;
-                      const isActive = show.isActive && !isExpired;
-                      
-                      return (
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          isExpired 
-                            ? 'bg-red-900/50 text-red-300 border border-red-700' 
-                            : isActive 
-                            ? 'bg-green-900/50 text-green-300 border border-green-700' 
-                            : 'bg-gray-900/50 text-gray-300 border border-gray-700'
-                        }`}>
-                          {isExpired ? 'Expired' : isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      );
-                    })()}
+                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      type === 'expired'
+                        ? 'bg-red-900/50 text-red-300 border border-red-700' 
+                        : type === 'active'
+                        ? 'bg-green-900/50 text-green-300 border border-green-700' 
+                        : 'bg-gray-900/50 text-gray-300 border border-gray-700'
+                    }`}>
+                      {type === 'expired' ? 'Expired' : type === 'active' ? 'Active' : 'Inactive'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                     <button onClick={() => handleOpenModal(show)} className="text-indigo-400 hover:text-indigo-300 transition-colors p-1" title="Edit Show">
