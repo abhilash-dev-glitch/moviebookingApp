@@ -230,16 +230,14 @@ export default function AdminDashboard() {
         {statsData.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center"
+            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4"
           >
-            <div className="p-3 rounded-lg bg-indigo-50 mr-4">
+            <div className="p-3 rounded-lg bg-indigo-50 flex-shrink-0">
               {stat.icon}
             </div>
-            <div>
-              <p className="text-sm text-gray-500">{stat.title}</p>
-              <div className="flex items-center">
-                <h3 className="text-2xl font-bold text-gray-800">{stat.value}</h3>
-              </div>
+            <div className="flex flex-col justify-center min-w-0">
+              <p className="text-sm text-gray-500 mb-1">{stat.title}</p>
+              <h3 className="text-2xl font-bold text-gray-800 truncate">{stat.value}</h3>
             </div>
           </div>
         ))}
