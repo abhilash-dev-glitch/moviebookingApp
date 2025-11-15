@@ -159,12 +159,13 @@ exports.getTheaterShowtimes = async (req, res, next) => {
       return next(new AppError('No theater found with that ID', 404));
     }
 
+    // Get all showtimes for the theater (past and future)
+    // Managers need to see all shows to manage them
     const showtimes = await Showtime.find({
       theater: req.params.id,
-      startTime: { $gte: new Date() },
     })
-      .populate('movie', 'title duration poster')
-      .sort('startTime');
+      .populate('movie', 'title duration poster genre language ratingsAverage ratingsCount')
+      .sort('-startTime'); // Sort by newest first
 
     res.status(200).json({
       status: 'success',
